@@ -1,0 +1,122 @@
+@import 'tailwindcss';
+
+/* ---------------------------------------------------------------------------
+   ProfJero Edu design tokens — derived from the ProfJero brand mark:
+   royal blue (primary), deep navy (ink), learning green (success/growth),
+   amber accent (the dot), chalkboard green for the classroom board.
+--------------------------------------------------------------------------- */
+@theme {
+  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --color-brand-50: #eef4ff;
+  --color-brand-100: #dbe6fe;
+  --color-brand-200: #bed2fd;
+  --color-brand-300: #91b4fb;
+  --color-brand-400: #5d8cf6;
+  --color-brand-500: #3468ee;
+  --color-brand-600: #1554d6;
+  --color-brand-700: #1443b0;
+  --color-brand-800: #163b8f;
+  --color-brand-900: #173571;
+
+  --color-ink-50: #f7f9fc;
+  --color-ink-100: #eef2f8;
+  --color-ink-200: #dde4ef;
+  --color-ink-300: #c3cddd;
+  --color-ink-400: #8d9ab1;
+  --color-ink-500: #637089;
+  --color-ink-600: #4a566d;
+  --color-ink-700: #364157;
+  --color-ink-800: #1f2a44;
+  --color-ink-900: #0b1f4d;
+  --color-ink-950: #071433;
+
+  --color-growth-50: #ecfdf5;
+  --color-growth-100: #d1fae6;
+  --color-growth-500: #16a36a;
+  --color-growth-600: #0f8a58;
+  --color-growth-700: #0c6e47;
+
+  --color-sun-50: #fff8eb;
+  --color-sun-100: #feeac7;
+  --color-sun-400: #f7b733;
+  --color-sun-500: #f59f0b;
+  --color-sun-700: #b45309;
+
+  --color-board-800: #163d33;
+  --color-board-900: #0f2e26;
+
+  --radius-xl: 0.875rem;
+  --radius-2xl: 1.125rem;
+  --shadow-card: 0 1px 2px rgb(11 31 77 / 0.05), 0 1px 3px rgb(11 31 77 / 0.06);
+  --shadow-lift: 0 10px 30px -12px rgb(11 31 77 / 0.25);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    @apply bg-ink-50 text-ink-800 font-sans antialiased;
+  }
+  h1, h2, h3, h4 {
+    @apply text-ink-900 tracking-tight;
+  }
+  :focus-visible {
+    outline: 3px solid var(--color-brand-400);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  ::selection {
+    background: var(--color-brand-100);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  .container-page {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+  .card {
+    @apply rounded-2xl border border-ink-200/80 bg-white shadow-[var(--shadow-card)];
+  }
+  .prose-lesson {
+    @apply text-[1.0625rem] leading-relaxed text-ink-700;
+  }
+  .prose-lesson p + p {
+    @apply mt-4;
+  }
+  .board-surface {
+    background:
+      radial-gradient(120% 80% at 10% 0%, rgb(255 255 255 / 0.06), transparent 60%),
+      linear-gradient(160deg, var(--color-board-800), var(--color-board-900));
+  }
+  .skip-link {
+    @apply sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-brand-700 focus:shadow-lg;
+  }
+}
+
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgb(22 163 106 / 0.55); }
+  70% { box-shadow: 0 0 0 8px rgb(22 163 106 / 0); }
+  100% { box-shadow: 0 0 0 0 rgb(22 163 106 / 0); }
+}
+.live-dot {
+  animation: pulse-ring 2s infinite;
+}
+@keyframes hand-wave {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-12deg); }
+  75% { transform: rotate(12deg); }
+}
+.hand-wave {
+  animation: hand-wave 1.2s ease-in-out infinite;
+  transform-origin: 50% 90%;
+}
