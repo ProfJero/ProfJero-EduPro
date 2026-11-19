@@ -1327,7 +1327,10 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "add_school_member":
+            "add_course_instructor":
+{ Args: { "p_course": string,"p_email": string,"p_role"?: string }; Returns: undefined
+                           },
+"add_school_member":
 { Args: { "p_class"?: string,"p_email": string,"p_full_name": string,"p_role": Database["public"]['Enums']["school_role"],"p_school": string,"p_student_number"?: string }; Returns: string
                            },
 "admin_list_users":
@@ -1337,6 +1340,16 @@ isOneToOne: false
                            },
 "admin_overview":
 { Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"assessment_results_overview":
+{ Args: { "p_assessment": string }; Returns: {
+              "attempt_id": string,"attempt_no": number,"learner_name": string,"max_score": number,"passed": boolean,"pending_manual": boolean,"percentage": number,"score": number,"started_at": string,"status": string,"submitted_at": string,"user_id": string
+            }[]
+                           },
+"assignment_submissions_overview":
+{ Args: { "p_assignment": string }; Returns: {
+              "file_count": number,"graded_at": string,"is_late": boolean,"learner_name": string,"score": number,"status": string,"submission_id": string,"submitted_at": string,"user_id": string
+            }[]
                            },
 "claim_certificate":
 { Args: { "p_course": string }; Returns: string
@@ -1355,8 +1368,16 @@ isOneToOne: false
 "course_public_stats":
 { Args: { "p_course": string }; Returns: Json
                            },
+"course_team":
+{ Args: { "p_course": string }; Returns: {
+              "avatar_url": string,"is_owner": boolean,"name": string,"role": string,"user_id": string
+            }[]
+                           },
 "duplicate_lesson":
 { Args: { "p_lesson": string }; Returns: string
+                           },
+"enrol_by_email":
+{ Args: { "p_course": string,"p_emails": (string)[] }; Returns: Json
                            },
 "enrol_in_course":
 { Args: { "p_course": string }; Returns: string
@@ -1366,6 +1387,9 @@ isOneToOne: false
                            },
 "get_attempt":
 { Args: { "p_attempt": string }; Returns: Json
+                           },
+"get_question":
+{ Args: { "p_question": string }; Returns: Json
                            },
 "grade_answer":
 { Args: { "p_attempt": string,"p_feedback": string,"p_marks": number,"p_question": string }; Returns: undefined
@@ -1388,6 +1412,11 @@ isOneToOne: false
 "my_invitations":
 { Args: Record<PropertyKey, never>; Returns: {
               "class_name": string,"expires_at": string,"id": string,"role": Database["public"]['Enums']["school_role"],"school_id": string,"school_name": string
+            }[]
+                           },
+"my_students":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "avatar_url": string,"avg_progress": number,"contexts": (string)[],"last_activity_at": string,"name": string,"user_id": string
             }[]
                            },
 "release_results":
@@ -1427,6 +1456,9 @@ isOneToOne: false
                            },
 "save_lesson_content":
 { Args: { "p_blocks": Json,"p_lesson": string,"p_revision_note"?: string,"p_summary": string,"p_title": string }; Returns: string
+                           },
+"save_question":
+{ Args: { "p": Json,"p_bank": string,"p_question": string }; Returns: string
                            },
 "school_directory":
 { Args: { "p_search"?: string }; Returns: {
