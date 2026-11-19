@@ -15,7 +15,7 @@ declare
   v_type public.question_type := (p ->> 'type')::public.question_type;
   v_opt jsonb;
   v_pos integer := 0;
-  v_ids uuid[] := '{}';
+  v_ids uuid[] := '{}'::uuid[];
   v_key jsonb := coalesce(p -> 'key', '{}'::jsonb);
   v_new uuid;
 begin

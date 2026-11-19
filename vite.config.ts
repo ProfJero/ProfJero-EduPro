@@ -29,10 +29,17 @@ export default defineConfig({
       },
       workbox: {
         // App shell only. API responses (private data) are never cached by the SW.
-        globPatterns: ['**/*.{js,css,html,png,webp,svg,woff2}'],
+        // Precache only the app shell; page chunks are cached on first use
+        // (hashed, immutable) to keep the first install light on data.
+        globPatterns: ['index.html', 'assets/*.css', 'assets/{index,react,supabase,query,ui}-*.js', 'brand/*.webp', 'icons/icon-192.png', 'favicon.png'],
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api\//],
         runtimeCaching: [
+          {
+            urlPattern: ({ url, sameOrigin }) => sameOrigin && url.pathname.startsWith('/assets/'),
+            handler: 'CacheFirst',
+            options: { cacheName: 'app-chunks', expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 60 } },
+          },
           {
             urlPattern: ({ url }) => url.origin === 'https://fonts.googleapis.com' || url.origin === 'https://fonts.gstatic.com',
             handler: 'StaleWhileRevalidate',
@@ -54,10 +61,12 @@ export default defineConfig({
     sourcemap: false,
     rollupOptions: {
       output: {
-        manualChunks: {
-          react: ['react', 'react-dom', 'react-router-dom'],
-          supabase: ['@supabase/supabase-js'],
-          query: ['@tanstack/react-query'],
+        manualChunks(id: string) {
+          if (!id.includes('node_modules')) return undefined;
+          if (/[\\/](react|react-dom|react-router|react-router-dom|scheduler)[\\/]/.test(id)) return 'react';
+          if (id.includes('@supabase')) return 'supabase';
+          if (id.includes('@tanstack')) return 'query';
+          return undefined;
         },
       },
     },

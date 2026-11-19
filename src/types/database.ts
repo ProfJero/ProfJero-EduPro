@@ -1406,6 +1406,9 @@ isOneToOne: false
 "mark_all_notifications_read":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
+"media_permissions":
+{ Args: { "p_course"?: string }; Returns: Json
+                           },
 "my_context":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },

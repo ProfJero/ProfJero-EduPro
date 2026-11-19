@@ -25,7 +25,7 @@ async function api<T>(path: string, body: unknown): Promise<T> {
 export async function uploadFile(file: File, purpose: UploadPurpose, ctx: { courseId?: string; submissionId?: string } = {}, onProgress?: (pct: number) => void): Promise<UploadResult> {
   const lim = LIMITS[purpose];
   if (file.size > lim.maxMb * 1024 * 1024) throw new Error(`File is too large. Maximum is ${lim.maxMb} MB.`);
-  const sig = await api<{ cloud_name: string; api_key: string; timestamp: number; signature: string; folder: string; type: string; resource_type: string; public_id?: string }>('/api/media/sign', { purpose, course_id: ctx.courseId, submission_id: ctx.submissionId, filename: file.name, mime: file.type, size: file.size });
+  const sig = await api<{ cloud_name: string; api_key: string; timestamp: number; signature: string; folder: string; type: string; resource_type: string; allowed_formats: string; public_id?: string }>('/api/media/sign', { purpose, course_id: ctx.courseId, submission_id: ctx.submissionId, filename: file.name, mime: file.type, size: file.size });
   const form = new FormData();
   form.append('file', file);
   form.append('api_key', sig.api_key);
@@ -33,6 +33,7 @@ export async function uploadFile(file: File, purpose: UploadPurpose, ctx: { cour
   form.append('signature', sig.signature);
   form.append('folder', sig.folder);
   form.append('type', sig.type);
+  form.append('allowed_formats', sig.allowed_formats);
   if (sig.public_id) form.append('public_id', sig.public_id);
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();

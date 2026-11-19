@@ -18,18 +18,18 @@ export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSel
   );
 });
 
-export function Checkbox({ label, description, className, ...p }: InputHTMLAttributes<HTMLInputElement> & { label: ReactNode; description?: ReactNode }) {
+export const Checkbox = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement> & { label: ReactNode; description?: ReactNode }>(function Checkbox({ label, description, className, ...p }, ref) {
   const id = useId();
   return (
     <div className={cn('flex items-start gap-3', className)}>
-      <input id={p.id ?? id} type="checkbox" className="mt-0.5 h-5 w-5 shrink-0 rounded-md border-ink-300 accent-brand-600" {...p} />
+      <input ref={ref} id={p.id ?? id} type="checkbox" className="mt-0.5 h-5 w-5 shrink-0 rounded-md border-ink-300 accent-brand-600" {...p} />
       <label htmlFor={p.id ?? id} className="text-sm text-ink-700">
         <span className="font-medium text-ink-800">{label}</span>
         {description && <span className="block text-ink-500">{description}</span>}
       </label>
     </div>
   );
-}
+});
 
 /** Label + control + hint + accessible error. The child control receives id/aria props. */
 export function Field({ label, hint, error, required, children, className }: { label: ReactNode; hint?: ReactNode; error?: string; required?: boolean; children: ReactElement; className?: string }) {

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -86,6 +86,7 @@ function ProfileForm() {
 
 function AccountSection() {
   const { user, signOut } = useAuth();
+  const nav = useNavigate();
   const toast = useToast();
   const [pw, setPw] = useState('');
   const [busy, setBusy] = useState(false);
@@ -115,8 +116,8 @@ function AccountSection() {
       <Card>
         <CardHeader title="Sessions" />
         <CardBody className="flex flex-wrap gap-3">
-          <Button variant="outline" onClick={() => void signOut()}>Sign out on this device</Button>
-          <Button variant="outline" onClick={async () => { await supabase.auth.signOut({ scope: 'global' }); await signOut(); }}>Sign out everywhere</Button>
+          <Button variant="outline" onClick={async () => { await signOut(); nav('/login', { replace: true }); }}>Sign out on this device</Button>
+          <Button variant="outline" onClick={async () => { await supabase.auth.signOut({ scope: 'global' }); await signOut(); nav('/login', { replace: true }); }}>Sign out everywhere</Button>
         </CardBody>
       </Card>
       <Alert tone="info" title="Your data">To request a copy of your data or account deletion, <Link to="/support" className="font-semibold underline">open a support ticket</Link>.</Alert>

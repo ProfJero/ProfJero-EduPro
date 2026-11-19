@@ -15,6 +15,6 @@ function localEnv() {
 const env = localEnv();
 const res = spawnSync(process.execPath, ['--test', '--test-concurrency=1', 'tests/db/*.test.mjs'], {
   stdio: 'inherit',
-  env: { ...process.env, SUPABASE_URL: env.API_URL, SUPABASE_ANON_KEY: env.ANON_KEY },
+  env: { ...process.env, SUPABASE_URL: env.API_URL, SUPABASE_ANON_KEY: env.ANON_KEY, DB_URL: env.DB_URL },
 });
 process.exit(res.status ?? 1);

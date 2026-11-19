@@ -541,8 +541,8 @@ begin
   if not (private.is_platform_admin() or (v_c.school_id is not null and private.is_school_admin(v_c.school_id))) then
     raise exception 'Not allowed' using errcode = '42501';
   end if;
-  v_status := case p_action when 'publish' then 'published' when 'reject' then 'draft' when 'unpublish' then 'unpublished'
-                            when 'archive' then 'archived' else null end;
+  v_status := (case p_action when 'publish' then 'published' when 'reject' then 'draft' when 'unpublish' then 'unpublished'
+                            when 'archive' then 'archived' else null end)::public.content_status;
   if v_status is null then raise exception 'Unknown action' using errcode = '22023'; end if;
   update public.courses set status = v_status, review_notes = p_notes where id = p_course;
   perform private.notify(v_c.owner_id, 'course_review',
@@ -970,7 +970,7 @@ declare
   v_i integer := 0;
   v_report jsonb := '[]'::jsonb;
   v_res text;
-  v_seen text[] := '{}';
+  v_seen text[] := '{}'::text[];
   v_email text;
 begin
   perform private.require_user();
