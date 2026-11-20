@@ -42,7 +42,11 @@ async function vapidJwt(env: Env, audience: string) {
   const hit = jwtCache.get(audience);
   const now = Math.floor(Date.now() / 1000);
   if (hit && hit.exp - 600 > now) return hit.jwt;
-  const jwk = JSON.parse(env.VAPID_PRIVATE_KEY!) as JsonWebKey;
+  // Accepts a JWK (JSON) or the raw base64url private key printed by `npx web-push generate-vapid-keys`.
+  const raw = env.VAPID_PRIVATE_KEY!.trim();
+  const pub = unb64url(env.VAPID_PUBLIC_KEY!);
+  const jwk: JsonWebKey = raw.startsWith('{') ? (JSON.parse(raw) as JsonWebKey)
+    : { kty: 'EC', crv: 'P-256', d: raw, x: b64url(pub.slice(1, 33)), y: b64url(pub.slice(33, 65)) };
   const key = await crypto.subtle.importKey('jwk', { ...jwk, key_ops: ['sign'], ext: true }, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
   const exp = now + 12 * 3600;
   const head = b64url(enc.encode(JSON.stringify({ typ: 'JWT', alg: 'ES256' })));

@@ -32,5 +32,17 @@ Legend: ✅ implemented and tested · 🟡 implemented, needs external credentia
 ## PWA & offline
 ✅ Installable manifest and icons, app-shell service worker, update prompt, connection banner, offline lessons, offline completion queue.
 
+## Round 2 — product families
+- **Look & feel**: light/dark/system theme, 7 accent colours, text size, reduced motion; collapsible grouped sidebar, Ctrl/⌘K command palette; preferences sync to the profile.
+- **Low-bandwidth mode** (auto on slow/Save-Data connections): no web fonts, tap-to-load media, lighter images, no live polling.
+- **Own classes**: teachers create classes, share a 7-character code or link, invite by email, allow guests (no account) and/or approve join requests.
+- **EduConnect**: class leaders (prefects, group leaders) with teacher-chosen permissions; study groups with their own board, discussion and polls; peer help (helpful votes, accepted answers, top helpers); polls with anonymous/named voting and result timing.
+- **EduLab**: Code Lab (Monaco editor with IntelliSense, Emmet, VS Code shortcuts, snippets, multi-file projects, share links, tests); Science Lab (circuits, projectiles, pendulum, titration, periodic table, buoyancy); Math Lab (grapher, step-by-step solver, statistics, triangles, fractions, probability); lab blocks inside lessons.
+- **EduIntelligence**: AI Companion (explain / guide me / quiz me / summarise), Teacher Resource Studio (GES-style lesson plans, structured notes, questions straight into question banks, schemes of work, rubrics, worksheets), Class Pulse (anonymous understanding/mood check-ins).
+- **Challenge Arena** (optional): Math Sprint, Quiz Rush, Word Builder, Typing Race, Code Quest in levels, server-side grading, XP, streaks, badges, leaderboards with opt-out.
+- **Classroom tools inspired by Google Classroom and Moodle**: calendar with .ics export, My grades, weighted gradebook with CSV export, class progress, invitations, scheduled announcements.
+- **Live**: Zoom and Google Meet meeting creation (OAuth), in-app Jitsi classroom.
+- **Push notifications** that arrive when the app is closed (opt-in prompt).
+
 ## Not implemented (planned)
-⬜ Interactive in-browser code execution · ⬜ Email notifications (in-app only; architecture ready) · ⬜ Learning-path UI (tables exist) · ⬜ Course prerequisites editor UI (enforced in the database) · ⬜ Proctoring · ⬜ Payment gateway.
+⬜ Email notifications (in-app and push only) · ⬜ Learning-path UI (tables exist) · ⬜ Course prerequisites editor UI (enforced in the database) · ⬜ Proctoring · ⬜ Payment gateway · ⬜ Official NaCCA strand/indicator data (import tool ready; the documents were not reachable from the build environment, so nothing was invented).

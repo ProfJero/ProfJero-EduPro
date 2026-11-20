@@ -8,6 +8,9 @@ await build({
   format: 'esm',
   target: 'es2022',
   platform: 'neutral',
+  mainFields: ['module', 'main'],
+  conditions: ['worker', 'browser', 'import'],
+  external: ['node:*'], // provided by the Workers runtime (nodejs_compat)
   minify: true,
   legalComments: 'none',
 });

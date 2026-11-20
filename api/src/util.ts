@@ -21,7 +21,8 @@ export async function getUser(req: Request, env: Env): Promise<User | null> {
 export async function rest<T>(env: Env, token: string | null, path: string, init: RequestInit = {}): Promise<{ ok: boolean; status: number; data: T }> {
   const r = await fetch(`${env.SUPABASE_URL}/rest/v1/${path}`, {
     ...init,
-    headers: { authorization: `Bearer ${token ?? env.SUPABASE_ANON_KEY}`, apikey: env.SUPABASE_ANON_KEY!, 'content-type': 'application/json', ...(init.headers ?? {}) },
+    // Without a user token the publishable key alone identifies the caller as anon.
+    headers: { ...(token ? { authorization: `Bearer ${token}` } : {}), apikey: env.SUPABASE_ANON_KEY!, 'content-type': 'application/json', ...(init.headers ?? {}) },
   });
   const text = await r.text();
   let data: unknown;

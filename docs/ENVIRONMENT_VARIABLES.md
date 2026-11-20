@@ -1,34 +1,38 @@
 # Environment variables
 
-Never put a secret in a `VITE_` variable: those are embedded in the public JavaScript bundle.
+Never put a secret in a `VITE_` variable: those are embedded in the public JavaScript bundle. All variables below are set on the **Cloudflare Pages project `profjero-edupro`** (Settings → Variables and secrets), for production and preview. Local development uses `.env.local` (frontend) and `.dev.vars` (worker); both are git-ignored — see `.env.example`.
 
-## Build time (GitHub Actions repository **variables** or a local `.env.local`)
-
-| Name | Public? | Purpose |
-|---|---|---|
-| `VITE_SUPABASE_URL` | yes | Supabase project URL |
-| `VITE_SUPABASE_ANON_KEY` | yes (RLS protects data) | Supabase publishable/anon key |
-| `VITE_CLOUDINARY_CLOUD_NAME` | yes | Enables upload UI (optional) |
-| `VITE_API_BASE` | yes | Override API origin (default: same origin) |
-
-## Runtime: Cloudflare Pages project → Settings → Variables
-
-| Name | Type | Purpose |
-|---|---|---|
-| `SUPABASE_URL` | plain text | worker verifies sessions / checks permissions |
-| `SUPABASE_ANON_KEY` | plain text | same |
-| `CLOUDINARY_CLOUD_NAME` | plain text | signing |
-| `CLOUDINARY_API_KEY` | **secret** | signing |
-| `CLOUDINARY_API_SECRET` | **secret** | signing (never leaves the worker) |
-| `GOOGLE_CLIENT_ID`, `ZOOM_CLIENT_ID` | plain text | reserved for future OAuth adapters |
-
-## GitHub Actions secrets (for deployment)
+## Build time (public)
 
 | Name | Purpose |
 |---|---|
-| `CLOUDFLARE_API_TOKEN` | API token with **Cloudflare Pages: Edit** permission |
-| `CLOUDFLARE_ACCOUNT_ID` | `010429b77e626b5d6655bedd4f6472a5` |
+| `VITE_SUPABASE_URL` | Supabase project URL |
+| `VITE_SUPABASE_ANON_KEY` | Supabase publishable key (RLS protects data) |
+| `VITE_API_BASE` | API origin (`https://profjero-edu-api.profjerodigitalstudio.workers.dev`) |
+| `VITE_VAPID_PUBLIC_KEY` | Web Push public key |
+| `VITE_CLOUDINARY_CLOUD_NAME` | Enables device uploads |
+| `NODE_VERSION` | `22` |
 
-Local development uses `.env.local` (frontend) and `.dev.vars` (worker under `wrangler pages dev`). Both are git-ignored. See `.env.example`.
+## Runtime (server only)
 
-The service-role key is **not used** by this project. Do not add it anywhere.
+| Name | Type | Purpose |
+|---|---|---|
+| `SUPABASE_URL`, `SUPABASE_ANON_KEY` | plain | verify sessions; every database call runs as the signed-in user (RLS) |
+| `APP_URL` | plain | OAuth redirect base, CORS |
+| `API_URL` | plain | allowed in the site's CSP (frames/connect) |
+| `ALLOWED_ORIGINS` | plain, optional | extra CORS origins (comma separated) |
+| `WORKER_SECRET` | **secret** | shared with `private.app_config` — push dispatch, OAuth state signing, provider token vault |
+| `ANTHROPIC_API_KEY` | **secret** | AI Companion and Resource Studio (model `claude-opus-5-5`) |
+| `VAPID_PUBLIC_KEY` | plain | Web Push |
+| `VAPID_PRIVATE_KEY` | **secret** | Web Push signing (raw base64url or JWK) |
+| `VAPID_SUBJECT` | plain, optional | contact URL/mailto for push services |
+| `CLOUDINARY_CLOUD_NAME` | plain | upload signing |
+| `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | **secret** | upload signing |
+| `ZOOM_CLIENT_ID`, `ZOOM_CLIENT_SECRET` | plain / **secret** | Zoom OAuth app |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | plain / **secret** | Google OAuth client (Calendar events → Meet links) |
+| `JAAS_APP_ID`, `JAAS_KID` | plain | Jitsi as a Service |
+| `JAAS_PRIVATE_KEY` | **secret** | JaaS RS256 key (PKCS#8 PEM) |
+| `JUDGE0_URL` | plain | Judge0-compatible code runner |
+| `JUDGE0_KEY`, `JUDGE0_KEY_HEADER` | **secret** / plain | runner auth (`X-Auth-Token`, or `X-RapidAPI-Key` for RapidAPI) |
+
+The Supabase service-role key is **not used** anywhere. Privileged server actions use worker-secret-gated database functions instead.

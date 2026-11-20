@@ -12,6 +12,16 @@ ProfJero Edu is the free offering. **ProfJero EduPro** is the premium tier insid
 | Media | Cloudinary (signed uploads, authenticated delivery for submissions) |
 | Hosting | Cloudflare Pages project `profjero-edupro` → https://profjero-edupro.pages.dev |
 
+
+## Product families
+- **ProfJero Edu** — courses, lessons, assessments, assignments, live classes, schools, certificates.
+- **EduLab** — Code Lab (Python, JavaScript, TypeScript, SQL, web in the browser; C/C++/Java/Go/Rust and more via a code runner), Science Lab, Math Lab.
+- **EduConnect** — teacher-owned classes with join codes and guests, class leaders, study groups, peer help, polls.
+- **EduIntelligence** — AI Companion grounded in the approved GES/NaCCA curriculum, Teacher Resource Studio, Class Pulse.
+- **Challenge Arena** — optional learning games in levels with leaderboards and badges.
+
+Live site: https://profjero-edupro.pages.dev · API: https://profjero-edu-api.profjerodigitalstudio.workers.dev · Setup steps that need the owner: docs/DEPLOYMENT.md.
+
 ## Quick start (local)
 
 ```bash

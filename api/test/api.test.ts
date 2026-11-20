@@ -63,3 +63,25 @@ describe('Math Lab expression parser', () => {
     expect(() => parse('x; y')).toThrow();
   });
 });
+
+describe('VAPID key formats', () => {
+  it('signs with a raw base64url private key (web-push format)', async () => {
+    const kp = (await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify'])) as CryptoKeyPair;
+    const jwk = await crypto.subtle.exportKey('jwk', kp.privateKey);
+    const pub = new Uint8Array((await crypto.subtle.exportKey('raw', kp.publicKey)) as ArrayBuffer);
+    const { sendPush } = await import('../src/push');
+    const seen: { auth?: string } = {};
+    const orig = globalThis.fetch;
+    globalThis.fetch = (async (_u: string, init: RequestInit) => { seen.auth = (init.headers as Record<string, string>).authorization; return new Response(null, { status: 201 }); }) as typeof fetch;
+    const ua = (await crypto.subtle.generateKey({ name: 'ECDH', namedCurve: 'P-256' }, true, ['deriveBits'])) as CryptoKeyPair;
+    const uaPub = new Uint8Array((await crypto.subtle.exportKey('raw', ua.publicKey)) as ArrayBuffer);
+    const status = await sendPush({ VAPID_PUBLIC_KEY: b64url(pub), VAPID_PRIVATE_KEY: jwk.d! }, { endpoint: 'https://push.example.test/abc', keys: { p256dh: b64url(uaPub), auth: b64url(crypto.getRandomValues(new Uint8Array(16))) } }, { title: 'x' });
+    globalThis.fetch = orig;
+    expect(status).toBe(201);
+    const jwt = /t=([^,]+)/.exec(seen.auth ?? '')![1];
+    const [h, c, sig] = jwt.split('.');
+    const ok = await crypto.subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, kp.publicKey, unb64url(sig), new TextEncoder().encode(`${h}.${c}`));
+    expect(ok).toBe(true);
+    expect(JSON.parse(new TextDecoder().decode(unb64url(c))).aud).toBe('https://push.example.test');
+  });
+});

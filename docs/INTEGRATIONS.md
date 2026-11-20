@@ -18,20 +18,28 @@ Auth settings to configure in the dashboard (Authentication → URL configuratio
 - Free-tier awareness: images are transformed on delivery, videos are better embedded from YouTube/Vimeo, and upload sizes are capped (2 MB avatars, 10 MB submissions, 50 MB course media).
 
 ## Live-class providers
-Adapter registry: `src/features/live/providers.ts`. Status endpoint: `GET /api/health` → `live_providers`.
+Adapter registry: `src/features/live/providers.ts`; server code `api/src/live.ts`.
 
 | Provider | Status |
 |---|---|
-| Manual link (any https) | ✅ |
-| Google Meet link | ✅ validated link |
-| Zoom link | ✅ validated link |
-| Jitsi | ✅ generated room links. `meet.jit.si` is suitable **for testing only**; use a dedicated JaaS or self-hosted deployment for production (not provisioned). |
-| Microsoft Teams link | ✅ |
-| Google Meet REST API (OAuth) | 🟡 not implemented. Needs a Google Cloud OAuth client (`GOOGLE_CLIENT_ID`/`SECRET`) and a Meet API scope review. Tokens would go in `private.provider_tokens`, which clients can never read. |
-| Zoom Meetings API (OAuth, not Video SDK) | 🟡 not implemented. Needs a Zoom OAuth app (`ZOOM_CLIENT_ID`/`SECRET`). |
+| Any https link, Teams | ✅ paste a link |
+| Jitsi | ✅ generated room; **in-app classroom** via the official IFrame API when "Hold the class inside ProfJero Edu" is ticked. Without JaaS keys it uses the free `meet.jit.si` server (short test calls only). With `JAAS_APP_ID`, `JAAS_KID`, `JAAS_PRIVATE_KEY` it uses 8x8.vc with signed JWTs; the class host is moderator. JaaS has its own pricing — not provisioned. |
+| Zoom | ✅ implemented, 🟡 awaiting a Zoom OAuth app. Create a *General app* (user-managed) at marketplace.zoom.us, scopes `meeting:write:meeting`, `user:read:user`; redirect URL `https://profjero-edupro.pages.dev/integrations/zoom/done`. Set `ZOOM_CLIENT_ID` / `ZOOM_CLIENT_SECRET`. Teachers then connect in Settings → Connected apps and press **Create** when scheduling. |
+| Google Meet | ✅ implemented, 🟡 awaiting a Google OAuth client. Google Cloud console → enable Google Calendar API → OAuth client (Web), redirect URI `https://profjero-edupro.pages.dev/integrations/google/done`, scopes `openid email …/auth/calendar.events`. Set `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`. Meet links are created through Calendar events with `conferenceData`. |
+
+OAuth tokens are stored only in `private.provider_tokens` through `provider_store_tokens`, which requires the worker secret and the user's own session; browsers never see them. Access tokens refresh automatically.
+
+## AI (EduIntelligence)
+`api/src/ai.ts` uses the official Anthropic SDK with `claude-opus-5-5`, streamed replies, server-side refusal fallback and prompt caching. Each request first calls `ai_consume` as the user (plan limit; blocked while a graded assessment is in progress). Answers are grounded in **approved** items from `curriculum_items` (`curriculum_search`) and, when opened from a lesson, the lesson's own content (`ai_lesson_context`). Admins import official NaCCA/GES strands and indicators in Platform console → Curriculum; nothing is invented. Needs `ANTHROPIC_API_KEY`.
+
+## Web Push
+`api/src/push.ts` implements VAPID (ES256) and aes128gcm encryption with Web Crypto (unit-tested round trip). A database trigger on `notifications` posts to `/api/push/dispatch` via `pg_net` with the worker secret; expired subscriptions are pruned. Needs `WORKER_SECRET`, the VAPID keys and `private.app_config`.
+
+## Code execution
+Python (Pyodide), JavaScript/TypeScript, SQL (sql.js) and web projects run in the learner's browser (engines from cdn.jsdelivr.net, cached offline). C, C++, Java, C#, Go, Rust, PHP, Ruby and Kotlin run through a Judge0-compatible service: set `JUDGE0_URL` (self-hosted Judge0 CE, or RapidAPI with `JUDGE0_KEY` + `JUDGE0_KEY_HEADER=X-RapidAPI-Key`). Not provisioned (paid plans exist).
 
 ## Cloudflare
-Pages project `profjero-edupro` (created). Worker in advanced mode (`dist/_worker.js`) serves the SPA and `/api/*`. Server variables: `SUPABASE_URL`, `SUPABASE_ANON_KEY` (plain text) plus the Cloudinary secrets.
+Pages project `profjero-edupro` (Git-connected). `dist/_worker.js` serves the SPA, `/api/*` and `/lab-runner` (the Code Lab preview sandbox). Worker `profjero-edu-api` is the public API hostname and proxies to the app. `api/wrangler.toml` lets the API also be deployed as a standalone Worker if preferred.
 
 ## GitHub
-`.github/workflows/ci-deploy.yml`: lint → typecheck → unit tests → build; local Supabase → DB security tests → E2E; then `wrangler pages deploy` when `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` secrets exist.
+`.github/workflows/ci-deploy.yml`: lint → typecheck → unit tests → build; local Supabase → DB security tests → E2E.

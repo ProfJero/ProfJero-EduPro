@@ -1,30 +1,31 @@
 # Deployment
 
-## Current status (19 November 2026)
+## Current status (20 November 2026)
 
 | Item | Status |
 |---|---|
-| GitHub | Source pushed to `ProfJero/ProfJero-EduPro`, branch `ccr-b163a389-1cynkq` |
-| Cloudflare Pages project | **Created**: `profjero-edupro` → https://profjero-edupro.pages.dev (production branch `main`) |
-| First deployment | **Blocked.** Cloudflare's GitHub integration for this account reports "internal issue with your Cloudflare Pages Git installation", and direct uploads need an API token the connector cannot use. Use the GitHub Actions route below. |
-| Supabase production project | **Blocked.** The account that owns "ProfJero's Org" already has 2 active free projects (Supabase's per-person limit). Pause or delete one, or upgrade. |
+| GitHub | `ProfJero/ProfJero-EduPro`, branch `ccr-b163a389-1cynkq` |
+| Cloudflare Pages | `profjero-edupro`, **Git-connected**: every push to `ccr-b163a389-1cynkq` builds (`npm run build`, output `dist`) and deploys to https://profjero-edupro.pages.dev. Compatibility flag `nodejs_compat` is set. |
+| API hostname | Worker `profjero-edu-api` → https://profjero-edu-api.profjerodigitalstudio.workers.dev. A small proxy that forwards to the app; the API code itself runs in the Pages worker (`dist/_worker.js`), so it is rebuilt from GitHub on every push. |
+| Supabase | Project **ProfJero EduPro** (`nhfrjayhywzsfhacftdj`, eu-west-1, org "ProfJero Hub"). All migrations up to `20261120000500` are applied. `seed.sql` (test accounts) is **never** applied to production. |
+| Pages variables (plain) | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (publishable key), `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `VITE_API_BASE`, `API_URL`, `APP_URL`, `NODE_VERSION=22` — set for production and preview. |
 
-## Steps to go live
+## Steps only the owner can do (dashboards)
 
-1. **Supabase project**: in https://supabase.com/dashboard, pause or delete one existing free project for that account, then create a project named `profjero-edupro` (region `eu-west-2`, London, is closest to Accra among the available regions). Or ask Claude in a new message and it will create it and apply the migrations.
-2. **Apply the schema**: `npx supabase link --project-ref <ref> && npx supabase db push`. This applies migrations only, never `seed.sql`.
-3. **Auth URLs**: Authentication → URL configuration. Site URL `https://profjero-edupro.pages.dev`, redirect `https://profjero-edupro.pages.dev/**`. Configure SMTP (Authentication → Emails) before inviting real users.
-4. **Cloudflare variables**: Pages → `profjero-edupro` → Settings → Variables. Add `SUPABASE_URL` and `SUPABASE_ANON_KEY` (and the Cloudinary secrets when available).
-5. **GitHub**: repository → Settings → Secrets and variables → Actions.
-   - Secrets: `CLOUDFLARE_API_TOKEN` (Cloudflare → My Profile → API Tokens → Create token → "Edit Cloudflare Workers" template, or a custom token with *Account › Cloudflare Pages › Edit*), `CLOUDFLARE_ACCOUNT_ID`.
-   - Variables: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, optional `VITE_CLOUDINARY_CLOUD_NAME`.
-6. **Deploy**: merge to `main` (deploys to https://profjero-edupro.pages.dev), or run the workflow manually. Other branches deploy as previews (`<branch>.profjero-edupro.pages.dev`).
-7. **Owner account**: sign up at the site with **profjero947@gmail.com**. The owner and platform-admin roles are granted automatically.
-8. **Verify**: `curl https://profjero-edupro.pages.dev/api/health` should report `"supabase": true`. Then register a test learner and run through the journeys in TESTING.md.
+1. **Supabase → Authentication → Sign In / Providers → Email**: turn **off** "Confirm email" (sign-up then signs people straight in; the app also handles it being on). Turn **on** "Allow anonymous sign-ins" (needed for guests joining a class).
+2. **Supabase → Authentication → URL configuration**: Site URL `https://profjero-edupro.pages.dev`; redirect URL `https://profjero-edupro.pages.dev/**`.
+3. **Shared worker secret** (enables push dispatch and the Zoom/Google token vault):
+   - Generate a random value locally, e.g. `openssl rand -hex 32`.
+   - Cloudflare → Workers & Pages → `profjero-edupro` → Settings → Variables and secrets → add **secret** `WORKER_SECRET` (production and preview).
+   - Supabase → SQL editor:
+     `insert into private.app_config (key, value) values ('api_url', 'https://profjero-edupro.pages.dev'), ('worker_secret', '<the same value>') on conflict (key) do update set value = excluded.value;`
+4. **Push notifications**: run `npx web-push generate-vapid-keys`. Add Pages variables `VAPID_PUBLIC_KEY` and `VITE_VAPID_PUBLIC_KEY` (both the public key, plain text), secret `VAPID_PRIVATE_KEY` (the private key), optional `VAPID_SUBJECT` (e.g. `https://profjero-edupro.pages.dev`). Retry the latest deployment so the public key is built into the app.
+5. **AI Companion / Resource Studio**: secret `ANTHROPIC_API_KEY` (from console.anthropic.com). Usage is billed by Anthropic; daily per-user limits come from the plan feature `ai_requests_per_day`.
+6. Optional integrations: see INTEGRATIONS.md (Cloudinary, Zoom, Google Meet, JaaS, Judge0).
+7. **Owner account**: sign up with **profjero947@gmail.com** — owner and platform-admin roles are granted automatically.
 
-### Alternative: Git integration
-If you reconnect GitHub in Cloudflare (Workers & Pages → Create → Connect to Git, reinstalling the Cloudflare Pages GitHub app), you can create a Git-connected project with build command `npm run build`, output `dist`, and `NODE_VERSION=22`. A Git project needs a fresh project name, or delete the empty `profjero-edupro` direct-upload project first.
+After changing variables, use Pages → Deployments → *Retry deployment* (build-time `VITE_` values only change on a new build).
 
-## Build facts
-- Build command `npm run build`, output directory `dist` (verified). Output includes `dist/_worker.js` (advanced mode) and `dist/sw.js`.
-- No custom domain is configured or purchased.
+## Verify
+- `curl https://profjero-edu-api.profjerodigitalstudio.workers.dev/api/health` → `features` shows which integrations are configured.
+- Platform console → Integrations shows the same, with what each one needs.

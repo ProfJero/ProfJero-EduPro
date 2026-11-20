@@ -18,7 +18,7 @@ export default defineConfig({
     { name: 'desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1366, height: 860 } } },
   ],
   webServer: process.env.E2E_BASE_URL ? undefined : {
-    command: 'npx wrangler pages dev dist --port 8788 --compatibility-date=2026-11-01',
+    command: 'npx wrangler pages dev dist --port 8788 --compatibility-date=2026-11-01 --compatibility-flags=nodejs_compat',
     url: 'http://localhost:8788/api/health',
     reuseExistingServer: true,
     timeout: 120_000,

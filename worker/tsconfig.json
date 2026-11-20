@@ -1,4 +1,4 @@
 {
-  "compilerOptions": { "target": "ES2022", "module": "ESNext", "moduleResolution": "bundler", "strict": true, "noEmit": true, "lib": ["ES2022", "DOM"], "skipLibCheck": true },
-  "include": ["*.ts"]
+  "compilerOptions": { "target": "ES2022", "module": "ESNext", "moduleResolution": "bundler", "strict": true, "noEmit": true, "lib": ["ES2022", "DOM", "DOM.Iterable"], "types": ["@cloudflare/workers-types"], "skipLibCheck": true },
+  "include": ["*.ts", "../api/src/*.ts"]
 }

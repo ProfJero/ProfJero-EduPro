@@ -44,7 +44,7 @@ function health(env: Env) {
 async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const url = new URL(req.url);
   const p = url.pathname;
-  if (p === '/' || p === '/api/health') return health(env);
+  if (p === '/' || p === '/api/health' || p === '/api/features') return health(env);
   if (p === '/lab-runner') return labRunner(env);
   if (p === '/api/push/dispatch' && req.method === 'POST') return dispatch(req, env);
 
@@ -72,8 +72,16 @@ async function route(req: Request, env: Env, ctx: ExecutionContext): Promise<Res
   return json({ error: 'Not found' }, 404);
 }
 
-export default {
-  async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+/** Handles API routes; returns null for paths this API does not own. */
+export async function handleApi(req: Request, env: Env, ctx: { waitUntil(p: Promise<unknown>): void }): Promise<Response | null> {
+  const p = new URL(req.url).pathname;
+  if (!(p.startsWith('/api/ai/') || p.startsWith('/api/live/') || p.startsWith('/api/push/') || p.startsWith('/api/code/') || p === '/lab-runner' || p === '/api/features')) return null;
+  return serve(req, env, ctx as ExecutionContext);
+}
+
+export { health as apiHealth };
+
+async function serve(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const origin = allowedOrigin(req, env);
     if (req.method === 'OPTIONS') return withCors(new Response(null, { status: origin ? 204 : 403 }), origin);
     try {
@@ -83,5 +91,7 @@ export default {
       console.error('api error', e);
       return withCors(json({ error: 'Server error' }, 500), origin);
     }
-  },
-};
+}
+
+/** Standalone deployment (e.g. as its own Worker with wrangler). */
+export default { fetch: (req: Request, env: Env, ctx: ExecutionContext) => serve(req, env, ctx) };

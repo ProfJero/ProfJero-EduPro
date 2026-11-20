@@ -4,8 +4,10 @@
  * Secrets (Cloudinary API secret) live only here, as Cloudflare secrets.
  */
 import { privateDownloadUrl, signParams } from './cloudinary';
+import { apiHealth, handleApi } from '../api/src/index';
+import type { Env as ApiEnv } from '../api/src/env';
 
-export interface Env {
+export interface Env extends ApiEnv {
   ASSETS: { fetch: (req: Request) => Promise<Response> };
   SUPABASE_URL?: string;
   SUPABASE_ANON_KEY?: string;
@@ -100,8 +102,10 @@ async function submissionUrl(req: Request, env: Env) {
   return json({ url, expires_in: 300 });
 }
 
-function health(env: Env) {
+async function health(env: Env) {
+  const api = (await apiHealth(env).json()) as { features: Record<string, boolean> };
   return json({
+    features: { ...api.features, cloudinary: cloudinaryReady(env) },
     ok: true,
     service: 'profjero-edu-api',
     supabase: Boolean(env.SUPABASE_URL && env.SUPABASE_ANON_KEY),
@@ -146,12 +150,14 @@ function securityHeaders(res: Response, env: Env, isHtml: boolean): Response {
 }
 
 export default {
-  async fetch(req: Request, env: Env): Promise<Response> {
+  async fetch(req: Request, env: Env, ctx: { waitUntil(p: Promise<unknown>): void }): Promise<Response> {
     const url = new URL(req.url);
+    const api = await handleApi(req, env, ctx);
+    if (api) return api;
     if (url.pathname.startsWith('/api/')) {
       try {
         if (req.method === 'OPTIONS') return new Response(null, { status: 204 });
-        if (url.pathname === '/api/health' && req.method === 'GET') return health(env);
+        if (url.pathname === '/api/health' && req.method === 'GET') return await health(env);
         if (url.pathname === '/api/media/sign' && req.method === 'POST') return await signUpload(req, env);
         if (url.pathname === '/api/media/submission-url' && req.method === 'POST') return await submissionUrl(req, env);
         return json({ error: 'Not found' }, 404);
