@@ -104,7 +104,7 @@ function localStorageGet(k: string) {
 }
 
 const wsIcon: Record<Workspace['kind'], ComponentType<{ className?: string }>> = { learner: GraduationCap, teacher: Presentation, school: Building2, admin: ShieldCheck };
-const wsAccent: Record<Workspace['kind'], string> = { learner: 'bg-brand-600', teacher: 'bg-growth-600', school: 'bg-sun-500', admin: 'bg-ink-900' };
+const wsAccent: Record<Workspace['kind'], string> = { learner: 'bg-brand-600', teacher: 'bg-growth-600', school: 'bg-sun-500', admin: 'bg-ink-950' };
 
 export function AppShell() {
   const { workspaces, context } = useAuth();
@@ -127,11 +127,11 @@ export function AppShell() {
   return (
     <div className="min-h-screen bg-ink-50">
       <a href="#main" className="skip-link">Skip to content</a>
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[17rem] border-r border-ink-200 bg-white lg:block" aria-label="Workspace navigation">{sidebar}</aside>
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[17rem] border-r border-ink-200 bg-surface lg:block" aria-label="Workspace navigation">{sidebar}</aside>
       <Dlg.Root open={drawer} onOpenChange={setDrawer}>
         <Dlg.Portal>
           <Dlg.Overlay className="fixed inset-0 z-50 bg-ink-950/40 lg:hidden" />
-          <Dlg.Content className="fixed inset-y-0 left-0 z-50 w-[85%] max-w-xs bg-white shadow-2xl lg:hidden" aria-label="Navigation">
+          <Dlg.Content className="fixed inset-y-0 left-0 z-50 w-[85%] max-w-xs bg-surface shadow-2xl lg:hidden" aria-label="Navigation">
             <Dlg.Title className="sr-only">Navigation</Dlg.Title>
             <Dlg.Description className="sr-only">Workspace navigation menu</Dlg.Description>
             <Dlg.Close className="absolute right-3 top-4 rounded-lg p-1.5 text-ink-500 hover:bg-ink-100" aria-label="Close menu"><X className="h-5 w-5" /></Dlg.Close>

@@ -7,7 +7,7 @@ export const MenuTrigger = M.Trigger;
 export function MenuContent({ children, align = 'end', className }: { children: ReactNode; align?: 'start' | 'end' | 'center'; className?: string }) {
   return (
     <M.Portal>
-      <M.Content align={align} sideOffset={6} className={cn('z-50 min-w-[13rem] rounded-xl border border-ink-200 bg-white p-1.5 shadow-[var(--shadow-lift)]', className)}>
+      <M.Content align={align} sideOffset={6} className={cn('z-50 min-w-[13rem] rounded-xl border border-ink-200 bg-surface p-1.5 shadow-[var(--shadow-lift)]', className)}>
         {children}
       </M.Content>
     </M.Portal>

@@ -153,7 +153,7 @@ function AddBlockBar({ onAdd, compact }: { onAdd: (t: BlockType) => void; compac
   const [open, setOpen] = useState(!compact);
   if (!open) return (
     <div className="group flex justify-center py-1">
-      <button onClick={() => setOpen(true)} className="inline-flex items-center gap-1 rounded-full border border-dashed border-ink-300 bg-white px-3 py-1 text-xs font-semibold text-ink-500 opacity-70 hover:border-brand-400 hover:text-brand-700 group-hover:opacity-100"><Plus className="h-3.5 w-3.5" />Add block</button>
+      <button onClick={() => setOpen(true)} className="inline-flex items-center gap-1 rounded-full border border-dashed border-ink-300 bg-surface px-3 py-1 text-xs font-semibold text-ink-500 opacity-70 hover:border-brand-400 hover:text-brand-700 group-hover:opacity-100"><Plus className="h-3.5 w-3.5" />Add block</button>
     </div>
   );
   return (
@@ -161,7 +161,7 @@ function AddBlockBar({ onAdd, compact }: { onAdd: (t: BlockType) => void; compac
       <div className="mb-2 flex items-center justify-between"><p className="text-xs font-bold uppercase tracking-wider text-brand-700">Add a block</p>{compact && <button onClick={() => setOpen(false)} aria-label="Close" className="text-ink-400"><X className="h-4 w-4" /></button>}</div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
         {BLOCK_TYPES.map((t) => (
-          <button key={t} onClick={() => { onAdd(t); if (compact) setOpen(false); }} className="rounded-xl border border-ink-200 bg-white px-3 py-2 text-left hover:border-brand-300 hover:bg-brand-50">
+          <button key={t} onClick={() => { onAdd(t); if (compact) setOpen(false); }} className="rounded-xl border border-ink-200 bg-surface px-3 py-2 text-left hover:border-brand-300 hover:bg-brand-50">
             <span className="block text-sm font-semibold text-ink-800">{blockMeta[t].label}</span>
             <span className="block text-[0.7rem] text-ink-500">{blockMeta[t].hint}</span>
           </button>

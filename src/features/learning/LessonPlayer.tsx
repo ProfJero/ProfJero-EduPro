@@ -146,7 +146,7 @@ export function LessonPlayer() {
           <Button variant="outline" size="sm" leftIcon={<ListTree className="h-4 w-4" />} onClick={() => setOutlineOpen(true)}>Lessons</Button>
         </div>
         {outlineOpen && (
-          <div className="fixed inset-0 z-50 overflow-y-auto bg-white p-5 lg:hidden" role="dialog" aria-modal="true" aria-label="Course outline">
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-surface p-5 lg:hidden" role="dialog" aria-modal="true" aria-label="Course outline">
             <div className="mb-4 flex items-center justify-between"><h2 className="font-bold">{course?.title}</h2><button onClick={() => setOutlineOpen(false)} aria-label="Close" className="rounded-lg p-2 hover:bg-ink-100"><X className="h-5 w-5" /></button></div>
             {Outline}
           </div>
@@ -169,7 +169,7 @@ export function LessonPlayer() {
         {blocksQ.data?.blocks.length ? <BlockRenderer blocks={blocksQ.data.blocks as never} /> : <p className="text-ink-500">This lesson has no content yet.</p>}
 
         {enrolled && lesson && (
-          <section className="mt-10 rounded-2xl border border-ink-200 bg-white p-5" aria-label="Lesson completion">
+          <section className="mt-10 rounded-2xl border border-ink-200 bg-surface p-5" aria-label="Lesson completion">
             {isDone ? (
               <p className="flex items-center gap-2 font-semibold text-growth-700"><CheckCircle2 className="h-5 w-5" />{queued ? 'Completed offline — will sync when online' : 'You completed this lesson'}</p>
             ) : lesson.completion_rule === 'quiz_pass' ? (

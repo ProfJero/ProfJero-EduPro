@@ -35,7 +35,7 @@ export function LiveSessionPage() {
             <p className="flex items-center gap-2 text-white/85"><Clock className="h-4 w-4" />{s.duration_minutes} minutes{phase === 'upcoming' && ` · starts ${countdown(new Date(s.starts_at).getTime() - now)}`}</p>
           </div>
           {phase !== 'cancelled' && phase !== 'ended' && (
-            <Button size="lg" className="bg-white text-board-900 hover:bg-growth-50" leftIcon={<Video className="h-5 w-5" />} onClick={() => join(s.id)}>
+            <Button size="lg" className="bg-surface text-board-900 hover:bg-growth-50" leftIcon={<Video className="h-5 w-5" />} onClick={() => join(s.id)}>
               {isHost ? 'Open meeting' : phase === 'live' ? 'Join class now' : 'Open meeting link'}
             </Button>
           )}

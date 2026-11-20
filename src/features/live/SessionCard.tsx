@@ -50,7 +50,7 @@ export function SessionCard({ s, compact, manage }: { s: LiveSessionRow; compact
   const join = useJoinSession();
   const start = new Date(s.starts_at).getTime();
   return (
-    <div className={cn('flex items-center gap-4 rounded-2xl border bg-white p-4 transition', phase === 'live' ? 'border-growth-500/60 shadow-[0_0_0_4px_rgb(22_163_106/0.08)]' : 'border-ink-200', phase === 'cancelled' && 'opacity-60')}>
+    <div className={cn('flex items-center gap-4 rounded-2xl border bg-surface p-4 transition', phase === 'live' ? 'border-growth-500/60 shadow-[0_0_0_4px_rgb(22_163_106/0.08)]' : 'border-ink-200', phase === 'cancelled' && 'opacity-60')}>
       <div className={cn('flex w-16 shrink-0 flex-col items-center rounded-xl py-2 text-center', phase === 'live' ? 'bg-growth-600 text-white' : 'bg-ink-50 text-ink-800')}>
         <span className="text-[0.65rem] font-bold uppercase tracking-wide opacity-80">{dayLabel(s.starts_at)}</span>
         <span className="text-lg font-extrabold leading-tight">{fmtTime(s.starts_at)}</span>

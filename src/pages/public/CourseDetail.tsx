@@ -150,7 +150,7 @@ function EnrolCard({ courseId, isPremium, method, cover }: { courseId: string; i
   const premiumLocked = isPremium && !context?.entitlements?.premium_courses?.enabled;
   const active = enr && enr.status !== 'dropped';
   return (
-    <div className="overflow-hidden rounded-2xl bg-white text-ink-800 shadow-[var(--shadow-lift)] lg:self-start">
+    <div className="overflow-hidden rounded-2xl bg-surface text-ink-800 shadow-[var(--shadow-lift)] lg:self-start">
       <div className="aspect-video">{cover}</div>
       <div className="space-y-3 p-5">
         {!session ? (

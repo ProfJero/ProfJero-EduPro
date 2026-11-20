@@ -21,7 +21,7 @@ export function AuthLayout() {
         </div>
         <p className="relative text-xs text-ink-400">ProfJero Edu is a product of ProfJero Digital Studio.</p>
       </aside>
-      <main id="main" className="flex flex-col bg-white">
+      <main id="main" className="flex flex-col bg-surface">
         <div className="p-5 lg:hidden"><Logo /></div>
         <div className="flex flex-1 items-center justify-center px-5 py-10">
           <div className="w-full max-w-md"><Outlet /></div>

@@ -33,7 +33,7 @@ function Block({ type, c }: { type: string; c: C }) {
       return <Video c={c} />;
     case 'audio':
       return s(c.url) ? (
-        <figure className="rounded-xl border border-ink-200 bg-white p-4">
+        <figure className="rounded-xl border border-ink-200 bg-surface p-4">
           <audio controls preload="none" src={s(c.url)} className="w-full">Your browser does not support audio.</audio>
           {s(c.caption) && <figcaption className="mt-2 text-sm text-ink-500">{s(c.caption)}</figcaption>}
           <Transcript text={s(c.transcript)} />
@@ -49,7 +49,7 @@ function Block({ type, c }: { type: string; c: C }) {
           <div className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-growth-700"><Wrench className="h-4 w-4" />Practical activity</div>
           <h3 className="mt-1 text-lg font-bold text-ink-900">{s(c.title)}</h3>
           <Paragraph text={s(c.instructions)} />
-          {s(c.expected) && <details className="mt-3 rounded-lg bg-white p-3 text-sm"><summary className="cursor-pointer font-semibold text-growth-700">What you should end up with</summary><p className="mt-2 whitespace-pre-wrap text-ink-600">{s(c.expected)}</p></details>}
+          {s(c.expected) && <details className="mt-3 rounded-lg bg-surface p-3 text-sm"><summary className="cursor-pointer font-semibold text-growth-700">What you should end up with</summary><p className="mt-2 whitespace-pre-wrap text-ink-600">{s(c.expected)}</p></details>}
         </section>
       );
     case 'quiz':
@@ -60,7 +60,7 @@ function Block({ type, c }: { type: string; c: C }) {
       if (!url) return null;
       const Icon = type === 'resource' ? Download : ExternalLink;
       return (
-        <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 rounded-xl border border-ink-200 bg-white p-4 no-underline transition hover:border-brand-300 hover:bg-brand-50/40">
+        <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 rounded-xl border border-ink-200 bg-surface p-4 no-underline transition hover:border-brand-300 hover:bg-brand-50/40">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600"><Icon className="h-5 w-5" /></span>
           <span className="min-w-0">
             <span className="block font-semibold text-ink-900">{s(c.title) || url}</span>
@@ -77,7 +77,7 @@ function Block({ type, c }: { type: string; c: C }) {
           <table className="w-full text-left text-sm">
             {s(c.caption) && <caption className="bg-ink-50 px-4 py-2 text-left text-sm font-semibold text-ink-700">{s(c.caption)}</caption>}
             <thead className="bg-ink-50"><tr>{headers.map((h, i) => <th key={i} scope="col" className="px-4 py-2.5 font-semibold text-ink-800">{h}</th>)}</tr></thead>
-            <tbody className="divide-y divide-ink-100 bg-white">{rows.map((r, i) => <tr key={i}>{r.map((cell, j) => <td key={j} className="px-4 py-2.5 text-ink-700">{cell}</td>)}</tr>)}</tbody>
+            <tbody className="divide-y divide-ink-100 bg-surface">{rows.map((r, i) => <tr key={i}>{r.map((cell, j) => <td key={j} className="px-4 py-2.5 text-ink-700">{cell}</td>)}</tr>)}</tbody>
           </table>
         </div>
       );
@@ -136,11 +136,11 @@ function Video({ c }: { c: C }) {
   return (
     <figure>
       {embed ? (
-        <div className="aspect-video overflow-hidden rounded-xl bg-ink-900">
+        <div className="aspect-video overflow-hidden rounded-xl bg-ink-950">
           <iframe src={embed} title={s(c.caption) || 'Lesson video'} loading="lazy" className="h-full w-full" allow="accelerometer; encrypted-media; picture-in-picture; fullscreen" referrerPolicy="strict-origin-when-cross-origin" />
         </div>
       ) : (
-        <video controls preload="none" className="w-full rounded-xl bg-ink-900" src={url}>Your browser does not support video.</video>
+        <video controls preload="none" className="w-full rounded-xl bg-ink-950" src={url}>Your browser does not support video.</video>
       )}
       {s(c.caption) && <figcaption className="mt-2 text-sm text-ink-500">{s(c.caption)}</figcaption>}
       <Transcript text={s(c.transcript)} />
@@ -196,7 +196,7 @@ function KnowledgeCheck({ c }: { c: C }) {
   const answer = Number(c.answer ?? 0);
   if (!s(c.question) && !s(c.assessment_id)) return null;
   return (
-    <section className="rounded-2xl border border-brand-200 bg-white p-5 shadow-sm">
+    <section className="rounded-2xl border border-brand-200 bg-surface p-5 shadow-sm">
       <p className="text-xs font-bold uppercase tracking-wider text-brand-600">Knowledge check · practice</p>
       {s(c.question) && (
         <>

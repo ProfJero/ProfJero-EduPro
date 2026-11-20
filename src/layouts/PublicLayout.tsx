@@ -19,7 +19,7 @@ export function PublicLayout() {
   const { session } = useAuth();
   const [open, setOpen] = useState(false);
   return (
-    <div className="flex min-h-screen flex-col bg-white">
+    <div className="flex min-h-screen flex-col bg-surface">
       <a href="#main" className="skip-link">Skip to content</a>
       <ConnectionBanner />
       <header className="sticky top-0 z-40 border-b border-ink-100 bg-white/90 backdrop-blur">
@@ -47,7 +47,7 @@ export function PublicLayout() {
           </button>
         </div>
         {open && (
-          <nav id="mobile-nav" aria-label="Mobile" className="border-t border-ink-100 bg-white lg:hidden">
+          <nav id="mobile-nav" aria-label="Mobile" className="border-t border-ink-100 bg-surface lg:hidden">
             <div className="container-page flex flex-col gap-1 py-3">
               {nav.map((n) => (
                 <NavLink key={n.to} to={n.to} onClick={() => setOpen(false)} className="rounded-lg px-3 py-2.5 font-semibold text-ink-700 hover:bg-ink-50">{n.label}</NavLink>

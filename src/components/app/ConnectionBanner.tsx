@@ -30,7 +30,7 @@ export function ConnectionBanner() {
   }, [online, wasOffline]);
   if (online && !showBack) return null;
   return (
-    <div role="status" className={online ? 'bg-growth-600 text-white' : 'bg-ink-900 text-white'}>
+    <div role="status" className={online ? 'bg-growth-600 text-white' : 'bg-ink-950 text-white'}>
       <div className="container-page flex items-center gap-2 py-2 text-sm">
         {online ? <Wifi className="h-4 w-4" /> : <WifiOff className="h-4 w-4" />}
         {online ? 'Back online — syncing your progress.' : 'You are offline. Saved lessons are still available; progress will sync when you reconnect.'}

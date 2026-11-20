@@ -55,13 +55,13 @@ export function CertificateView() {
   const accent = c.template?.accent_color ?? '#1554D6';
   const verifyUrl = `${location.origin}/verify/${c.serial}`;
   return (
-    <div className="min-h-screen bg-ink-100 py-6 print:bg-white print:py-0">
+    <div className="min-h-screen bg-ink-100 py-6 print:bg-surface print:py-0">
       <style>{`@page { size: A4 landscape; margin: 0 } @media print { .no-print { display: none !important } }`}</style>
       <div className="no-print mx-auto mb-4 flex max-w-[297mm] justify-between px-4">
         <Link to="/learn/certificates" className="text-sm font-semibold text-ink-600">← Back</Link>
         <Button onClick={() => window.print()} leftIcon={<Printer className="h-4 w-4" />}>Print / save as PDF</Button>
       </div>
-      <div className="mx-auto aspect-[297/210] w-full max-w-[297mm] bg-white p-[5%] shadow-xl print:shadow-none" style={{ border: `10px solid ${accent}` }}>
+      <div className="mx-auto aspect-[297/210] w-full max-w-[297mm] bg-surface p-[5%] shadow-xl print:shadow-none" style={{ border: `10px solid ${accent}` }}>
         <div className="flex h-full flex-col items-center justify-between border-2 border-ink-200 p-[4%] text-center">
           <div className="flex items-center gap-3"><img src="/brand/profjero-mark.webp" alt="" className="h-12 w-12" /><span className="text-xl font-extrabold text-ink-900">Prof<span style={{ color: accent }}>Jero</span> Edu</span></div>
           <div>

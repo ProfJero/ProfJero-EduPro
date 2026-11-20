@@ -80,7 +80,7 @@ function ClassBoard({ type, roomId, board, canModerate, title }: { type: RoomTyp
       {editing ? (
         <div className="mt-4 space-y-3">
           <Textarea value={text} onChange={(e) => setText(e.target.value)} rows={4} maxLength={4000} aria-label="Board text" className="border-white/20 bg-white/10 text-white placeholder:text-white/50 focus:border-white/40 focus:ring-white/10" placeholder="Today's topic, key points, reminders…" />
-          <div className="flex gap-2"><Button size="sm" className="bg-white text-board-900 hover:bg-growth-50" loading={save.isPending} disabled={!text.trim()} onClick={() => save.mutate()}>Post to board</Button><Button size="sm" variant="board" onClick={() => setEditing(false)}>Cancel</Button></div>
+          <div className="flex gap-2"><Button size="sm" className="bg-surface text-board-900 hover:bg-growth-50" loading={save.isPending} disabled={!text.trim()} onClick={() => save.mutate()}>Post to board</Button><Button size="sm" variant="board" onClick={() => setEditing(false)}>Cancel</Button></div>
         </div>
       ) : board ? (
         <>
@@ -183,7 +183,7 @@ function Discussion({ type, roomId, messages, loading, canModerate }: { type: Ro
   return (
     <Card>
       <CardHeader title={<span className="inline-flex items-center gap-2"><MessageCircle className="h-5 w-5 text-brand-600" />Class discussion</span>} description="Ask questions, share ideas and help each other. Be kind — your teacher can see everything here."
-        action={<div className="flex gap-1 rounded-lg bg-ink-100 p-0.5 text-xs font-semibold">{(['all', 'questions', 'open'] as const).map((f) => <button key={f} onClick={() => setFilter(f)} aria-pressed={filter === f} className={cn('rounded-md px-2.5 py-1', filter === f ? 'bg-white text-ink-900 shadow-sm' : 'text-ink-500')}>{f === 'open' ? 'Unanswered' : f[0].toUpperCase() + f.slice(1)}</button>)}</div>} />
+        action={<div className="flex gap-1 rounded-lg bg-ink-100 p-0.5 text-xs font-semibold">{(['all', 'questions', 'open'] as const).map((f) => <button key={f} onClick={() => setFilter(f)} aria-pressed={filter === f} className={cn('rounded-md px-2.5 py-1', filter === f ? 'bg-surface text-ink-900 shadow-sm' : 'text-ink-500')}>{f === 'open' ? 'Unanswered' : f[0].toUpperCase() + f.slice(1)}</button>)}</div>} />
       <CardBody>
         <form className="space-y-2" onSubmit={(e) => { e.preventDefault(); if (!body.trim()) return; post.mutate({ body: body.trim(), kind: asQuestion ? 'question' : 'message' }, { onSuccess: () => { setBody(''); setAsQuestion(false); } }); }}>
           <label htmlFor={`compose-${roomId}`} className="sr-only">Write a message</label>
@@ -212,7 +212,7 @@ function MessageItem({ m, replies, mine, canModerate, onReply, onUpdate }: { m: 
   const [text, setText] = useState('');
   const { user } = useAuth();
   return (
-    <article className={cn('rounded-xl border p-3.5', m.is_pinned ? 'border-brand-200 bg-brand-50/50' : m.kind === 'question' ? 'border-ink-200 bg-white' : 'border-ink-100 bg-ink-50/50')}>
+    <article className={cn('rounded-xl border p-3.5', m.is_pinned ? 'border-brand-200 bg-brand-50/50' : m.kind === 'question' ? 'border-ink-200 bg-surface' : 'border-ink-100 bg-ink-50/50')}>
       <div className="flex gap-3">
         <Avatar name={m.author_name} size={34} />
         <div className="min-w-0 flex-1">

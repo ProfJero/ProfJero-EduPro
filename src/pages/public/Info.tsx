@@ -4,7 +4,7 @@ import { SectionTitle } from './Home';
 
 function Hero({ eyebrow, title, text, ctas }: { eyebrow: string; title: string; text: string; ctas: React.ReactNode }) {
   return (
-    <section className="bg-gradient-to-b from-brand-50/70 to-white">
+    <section className="bg-gradient-to-b from-brand-50/70 to-surface">
       <div className="container-page py-14 sm:py-20">
         <p className="text-sm font-bold uppercase tracking-[0.18em] text-brand-600">{eyebrow}</p>
         <h1 className="mt-3 max-w-3xl text-4xl font-extrabold leading-tight sm:text-5xl">{title}</h1>

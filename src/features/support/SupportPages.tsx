@@ -101,7 +101,7 @@ export function SupportTicketPage() {
         {(replies.data ?? []).map((r) => (
           <li key={r.id} className={cn('flex gap-3', r.author_id === user?.id && 'flex-row-reverse')}>
             <Avatar name={r.author_id === ticket.user_id ? 'You' : 'ProfJero Support'} size={32} />
-            <div className={cn('max-w-[80%] rounded-2xl px-4 py-3 text-sm', r.is_internal ? 'border border-dashed border-sun-400 bg-sun-50' : r.author_id === user?.id ? 'bg-brand-600 text-white' : 'bg-white shadow-sm')}>
+            <div className={cn('max-w-[80%] rounded-2xl px-4 py-3 text-sm', r.is_internal ? 'border border-dashed border-sun-400 bg-sun-50' : r.author_id === user?.id ? 'bg-brand-600 text-white' : 'bg-surface shadow-sm')}>
               {r.is_internal && <p className="mb-1 inline-flex items-center gap-1 text-xs font-bold text-sun-700"><Lock className="h-3 w-3" />Internal note</p>}
               <p className="whitespace-pre-wrap">{r.body}</p>
               <p className={cn('mt-1 text-xs', r.author_id === user?.id && !r.is_internal ? 'text-white/70' : 'text-ink-400')}>{fromNow(r.created_at)}</p>

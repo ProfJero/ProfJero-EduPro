@@ -250,7 +250,7 @@ function QuestionInput({ q, value, onChange, readOnly }: { q: AttemptQuestion; v
         <ol className="space-y-2" {...labelled}>
           <p className="text-sm text-ink-500">Put the items in the correct order using the arrows.</p>
           {order.map((id, idx) => (
-            <li key={id} className="flex items-center gap-3 rounded-xl border border-ink-200 bg-white px-3 py-2.5">
+            <li key={id} className="flex items-center gap-3 rounded-xl border border-ink-200 bg-surface px-3 py-2.5">
               <span className="w-6 text-center text-sm font-bold text-ink-400">{idx + 1}</span>
               <span className="flex-1">{items.find((x) => x.id === id)?.text}</span>
               {!readOnly && <>

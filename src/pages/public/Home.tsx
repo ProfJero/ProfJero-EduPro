@@ -29,7 +29,7 @@ export function Home() {
 
 function Hero() {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-brand-50/70 via-white to-white">
+    <section className="relative overflow-hidden bg-gradient-to-b from-brand-50/70 via-surface to-surface">
       <div className="pointer-events-none absolute -right-40 -top-40 h-[32rem] w-[32rem] rounded-full bg-brand-200/40 blur-3xl" />
       <div className="container-page relative grid items-center gap-12 py-14 lg:grid-cols-[1.1fr_1fr] lg:py-24">
         <div>
@@ -73,7 +73,7 @@ function ClassroomIllustration() {
           <p className="mt-4 text-sm text-white/70">Today on the board</p>
           <p className="mt-1 text-xl font-bold">Loops: repeating instructions with <code className="rounded bg-white/10 px-1.5">for</code></p>
           <div className="mt-4 flex gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-bold text-board-900"><Video className="h-3.5 w-3.5" /> Join live class</span>
+            <span className="inline-flex items-center gap-1.5 rounded-lg bg-surface px-3 py-1.5 text-xs font-bold text-board-900"><Video className="h-3.5 w-3.5" /> Join live class</span>
             <span className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-1.5 text-xs font-semibold"><Hand className="h-3.5 w-3.5" /> Raise hand</span>
           </div>
         </div>
@@ -303,7 +303,7 @@ function FinalCta() {
           <h2 className="relative text-3xl font-extrabold text-white sm:text-4xl">Your next class starts here.</h2>
           <p className="relative mx-auto mt-3 max-w-xl text-white/85">Join ProfJero Edu as a learner, teacher or school — it takes less than two minutes.</p>
           <div className="relative mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-            <ButtonLink to="/register" size="lg" className="bg-white text-brand-700 hover:bg-brand-50">Create free account</ButtonLink>
+            <ButtonLink to="/register" size="lg" className="bg-surface text-brand-700 hover:bg-brand-50">Create free account</ButtonLink>
             <ButtonLink to="/for-schools" size="lg" variant="board"><ClipboardCheck className="h-4 w-4" /> Bring your school</ButtonLink>
           </div>
           <p className="relative mt-6 inline-flex items-center gap-2 text-sm text-white/75"><WifiOff className="h-4 w-4" /> Install it on your phone and keep learning offline. <BarChart3 className="hidden" /></p>

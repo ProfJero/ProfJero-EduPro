@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 export function CatalogPage() {
   return (
     <div className="bg-ink-50/60">
-      <div className="border-b border-ink-100 bg-white">
+      <div className="border-b border-ink-100 bg-surface">
         <div className="container-page py-10">
           <h1 className="text-3xl font-extrabold sm:text-4xl">Explore courses</h1>
           <p className="mt-2 max-w-2xl text-ink-600">Practical, structured courses from ProfJero educators. Browse freely — create a free account to enrol and track your progress.</p>
@@ -92,7 +92,7 @@ export function CourseBrowser({ linkPrefix, linkBy = 'slug' }: { linkPrefix: str
 
 function Chip({ active, children, onClick }: { active: boolean; children: React.ReactNode; onClick: () => void }) {
   return (
-    <button onClick={onClick} aria-pressed={active} className={cn('shrink-0 rounded-full border px-3.5 py-1.5 text-sm font-semibold transition', active ? 'border-brand-600 bg-brand-600 text-white' : 'border-ink-200 bg-white text-ink-600 hover:border-ink-300')}>
+    <button onClick={onClick} aria-pressed={active} className={cn('shrink-0 rounded-full border px-3.5 py-1.5 text-sm font-semibold transition', active ? 'border-brand-600 bg-brand-600 text-white' : 'border-ink-200 bg-surface text-ink-600 hover:border-ink-300')}>
       {children}
     </button>
   );

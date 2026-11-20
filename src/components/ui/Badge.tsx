@@ -9,7 +9,7 @@ const tones: Record<Tone, string> = {
   amber: 'bg-sun-50 text-sun-700 ring-1 ring-inset ring-sun-100',
   red: 'bg-red-50 text-red-700 ring-1 ring-inset ring-red-100',
   violet: 'bg-violet-50 text-violet-700 ring-1 ring-inset ring-violet-100',
-  navy: 'bg-ink-900 text-white',
+  navy: 'bg-ink-950 text-white',
 };
 export function Badge({ children, tone = 'neutral', className, icon }: { children: ReactNode; tone?: Tone; className?: string; icon?: ReactNode }) {
   return <span className={cn('inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold', tones[tone], className)}>{icon}{children}</span>;

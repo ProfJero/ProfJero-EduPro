@@ -9,12 +9,12 @@ type Size = 'sm' | 'md' | 'lg' | 'icon';
 const base =
   'inline-flex items-center justify-center gap-2 rounded-xl font-semibold transition-colors disabled:pointer-events-none disabled:opacity-55 select-none whitespace-nowrap';
 const variants: Record<Variant, string> = {
-  primary: 'bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-800 shadow-sm',
+  primary: 'bg-brand-600 text-white hover:bg-brand-500 active:brightness-95 shadow-sm',
   secondary: 'bg-brand-50 text-brand-700 hover:bg-brand-100',
-  outline: 'border border-ink-200 bg-white text-ink-800 hover:bg-ink-50 hover:border-ink-300',
+  outline: 'border border-ink-200 bg-surface text-ink-800 hover:bg-ink-50 hover:border-ink-300',
   ghost: 'text-ink-700 hover:bg-ink-100',
   danger: 'bg-red-600 text-white hover:bg-red-700',
-  success: 'bg-growth-600 text-white hover:bg-growth-700',
+  success: 'bg-growth-600 text-white hover:bg-growth-500',
   board: 'bg-white/10 text-white hover:bg-white/20 border border-white/15',
 };
 const sizes: Record<Size, string> = {
