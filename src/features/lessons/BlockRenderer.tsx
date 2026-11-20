@@ -4,6 +4,8 @@ import { AlertTriangle, CheckCircle2, Download, ExternalLink, Info, Lightbulb, S
 import { cldSrcSet, cldUrl, videoEmbedUrl } from '@/lib/media';
 import { cn, safeExternalUrl } from '@/lib/utils';
 import { isAllowedEmbed, type LessonBlock } from './blocks';
+import { TapToLoad } from '@/components/app/LowDataMedia';
+import { LabBlock } from '@/features/lab/LabBlock';
 
 type C = Record<string, unknown>;
 const s = (v: unknown) => (typeof v === 'string' ? v : '');
@@ -24,13 +26,15 @@ function Block({ type, c }: { type: string; c: C }) {
       return <Paragraph text={s(c.text)} />;
     case 'image':
       return s(c.url) ? (
-        <figure>
+        <TapToLoad kind="image" label={s(c.alt) || s(c.caption)}><figure>
           <img src={cldUrl(s(c.url), { w: 1200 })} srcSet={cldSrcSet(s(c.url))} sizes="(min-width: 1024px) 760px, 100vw" alt={s(c.alt)} loading="lazy" className="w-full rounded-xl border border-ink-100" />
           {s(c.caption) && <figcaption className="mt-2 text-center text-sm text-ink-500">{s(c.caption)}</figcaption>}
-        </figure>
+        </figure></TapToLoad>
       ) : null;
     case 'video':
-      return <Video c={c} />;
+      return <TapToLoad kind="video" label={s(c.caption)}><Video c={c} /></TapToLoad>;
+    case 'lab':
+      return <LabBlock c={c} />;
     case 'audio':
       return s(c.url) ? (
         <figure className="rounded-xl border border-ink-200 bg-surface p-4">
@@ -100,9 +104,9 @@ function Block({ type, c }: { type: string; c: C }) {
       const url = s(c.url);
       if (!isAllowedEmbed(url)) return <p className="rounded-xl bg-ink-50 p-4 text-sm text-ink-500">This embedded content is not from an approved provider.</p>;
       return (
-        <div className="overflow-hidden rounded-xl border border-ink-200">
+        <TapToLoad kind="embed" label={s(c.title)}><div className="overflow-hidden rounded-xl border border-ink-200">
           <iframe src={url} title={s(c.title)} loading="lazy" className="w-full" style={{ height: Number(c.height) || 480 }} sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-presentation" allow="fullscreen" referrerPolicy="no-referrer" />
-        </div>
+        </div></TapToLoad>
       );
     }
     case 'divider':

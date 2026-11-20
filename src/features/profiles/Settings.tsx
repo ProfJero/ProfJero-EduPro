@@ -1,15 +1,19 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Crown, KeyRound, ShieldCheck } from 'lucide-react';
+import { BellRing, Check, Crown, KeyRound, Monitor, Moon, ShieldCheck, Sun, WifiLow } from 'lucide-react';
 import { Alert, Avatar, Badge, Button, Card, CardBody, CardHeader, Checkbox, Field, Input, PageHeader, Select, Tabs, Textarea, useToast } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
 import { errorMessage } from '@/lib/utils';
 import { useAuth } from '@/features/authentication/AuthProvider';
 import { FileUploadButton } from '@/features/media/FileUploadButton';
 import { COUNTRIES, TIMEZONES } from './geo';
+import { ACCENTS, networkIsConstrained, usePrefs, type ThemeMode } from '@/features/preferences/PreferencesProvider';
+import { currentSubscription, disablePush, enablePush, pushConfigured, pushSupported } from '@/lib/push';
+import { ProviderConnections } from '@/features/live/ProviderConnections';
+import { cn } from '@/lib/utils';
 
 const schema = z.object({
   full_name: z.string().trim().min(2).max(120),
@@ -24,10 +28,16 @@ const schema = z.object({
 type Form = z.infer<typeof schema>;
 
 export function SettingsPage() {
+  const [params, setParams] = useSearchParams();
+  const { workspaces } = useAuth();
+  const teacher = workspaces.some((w) => w.kind === 'teacher');
   return (
     <div className="mx-auto max-w-3xl">
       <PageHeader title="Profile & settings" />
-      <Tabs tabs={[
+      <Tabs value={params.get('tab') ?? 'profile'} onValueChange={(v) => setParams({ tab: v }, { replace: true })} tabs={[
+        { value: 'appearance', label: 'Appearance & data', content: <AppearanceSection /> },
+        { value: 'notifications', label: 'Notifications', content: <NotificationsSection /> },
+        ...(teacher ? [{ value: 'apps', label: 'Connected apps', content: <ProviderConnections /> }] : []),
         { value: 'profile', label: 'Profile', content: <ProfileForm /> },
         { value: 'account', label: 'Account & security', content: <AccountSection /> },
         { value: 'plan', label: 'Plan', content: <PlanSection /> },
@@ -85,13 +95,14 @@ function ProfileForm() {
 }
 
 function AccountSection() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, profile } = useAuth();
   const nav = useNavigate();
   const toast = useToast();
   const [pw, setPw] = useState('');
   const [busy, setBusy] = useState(false);
   return (
     <div className="space-y-5">
+      {profile?.is_guest && <GuestUpgrade />}
       <Card>
         <CardHeader title="Email" />
         <CardBody><p className="text-sm text-ink-700">{user?.email}</p><p className="mt-1 text-xs text-ink-500">{user?.email_confirmed_at ? 'Verified' : 'Not verified'}</p></CardBody>
@@ -162,5 +173,127 @@ function RolesSection() {
         <Link to="/schools/apply" className="card p-4 hover:border-brand-300"><p className="font-bold">Register a school</p><p className="text-sm text-ink-500">Get a private school workspace.</p></Link>
       </div>
     </div>
+  );
+}
+
+function GuestUpgrade() {
+  const toast = useToast();
+  const { refresh } = useAuth();
+  const [email, setEmail] = useState('');
+  const [pw, setPw] = useState('');
+  const [busy, setBusy] = useState(false);
+  return (
+    <Card className="ring-2 ring-sun-400/50">
+      <CardHeader title="Save your progress" description="You joined as a guest. Add an email and password to keep your classes, work and progress — nothing is lost." />
+      <CardBody>
+        <form className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]" onSubmit={async (e) => {
+          e.preventDefault();
+          if (pw.length < 8 || !/[A-Za-z]/.test(pw) || !/\d/.test(pw)) return toast.error('Weak password', 'Use at least 8 characters with a letter and a number.');
+          setBusy(true);
+          const a = await supabase.auth.updateUser({ email });
+          const b = a.error ? a : await supabase.auth.updateUser({ password: pw });
+          setBusy(false);
+          if (b.error) toast.error('Could not create your account', errorMessage(b.error));
+          else { toast.success('Account created', 'You can now sign in with your email.'); await refresh(); }
+        }}>
+          <Input type="email" required placeholder="you@example.com" aria-label="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <Input type="password" required placeholder="Password" aria-label="Password" autoComplete="new-password" value={pw} onChange={(e) => setPw(e.target.value)} />
+          <Button type="submit" loading={busy}>Create account</Button>
+        </form>
+      </CardBody>
+    </Card>
+  );
+}
+
+function AppearanceSection() {
+  const { prefs, setPref, lowData } = usePrefs();
+  const modes: { v: ThemeMode; label: string; icon: React.ReactNode }[] = [
+    { v: 'light', label: 'Light', icon: <Sun className="h-5 w-5" /> }, { v: 'dark', label: 'Dark', icon: <Moon className="h-5 w-5" /> }, { v: 'system', label: 'System', icon: <Monitor className="h-5 w-5" /> },
+  ];
+  return (
+    <div className="space-y-5">
+      <Card>
+        <CardHeader title="Theme" description="Choose how ProfJero Edu looks on this account." />
+        <CardBody className="grid grid-cols-3 gap-3">
+          {modes.map((m) => (
+            <button key={m.v} onClick={() => setPref('theme', m.v)} aria-pressed={prefs.theme === m.v}
+              className={cn('flex flex-col items-center gap-2 rounded-2xl border p-4 text-sm font-semibold transition', prefs.theme === m.v ? 'border-brand-600 bg-brand-50 text-brand-700 ring-2 ring-brand-200' : 'border-ink-200 text-ink-600 hover:border-ink-300')}>
+              {m.icon}{m.label}
+            </button>
+          ))}
+        </CardBody>
+      </Card>
+      <Card>
+        <CardHeader title="Accent colour" description="Your accent colours buttons, links and highlights everywhere." />
+        <CardBody className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {ACCENTS.map((a) => (
+            <button key={a.id} onClick={() => setPref('accent', a.id)} aria-pressed={prefs.accent === a.id}
+              className={cn('flex items-center gap-2.5 rounded-xl border p-3 text-left text-sm font-semibold', prefs.accent === a.id ? 'border-ink-900 ring-2 ring-ink-300' : 'border-ink-200 hover:border-ink-300')}>
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-white" style={{ background: a.swatch }}>{prefs.accent === a.id && <Check className="h-4 w-4" />}</span>
+              <span className="text-ink-800">{a.name}</span>
+            </button>
+          ))}
+        </CardBody>
+      </Card>
+      <Card>
+        <CardHeader title="Reading & motion" />
+        <CardBody className="space-y-4">
+          <div>
+            <p className="mb-2 text-sm font-semibold text-ink-800">Text size</p>
+            <div className="inline-flex rounded-xl bg-ink-100 p-1">
+              {(['sm', 'md', 'lg'] as const).map((t) => <button key={t} onClick={() => setPref('textSize', t)} aria-pressed={prefs.textSize === t} className={cn('rounded-lg px-4 py-1.5 text-sm font-semibold', prefs.textSize === t ? 'bg-surface text-ink-900 shadow-sm' : 'text-ink-500')}>{t === 'sm' ? 'Small' : t === 'md' ? 'Default' : 'Large'}</button>)}
+            </div>
+          </div>
+          <Checkbox label="Reduce motion" description="Minimise animations across the platform." checked={prefs.reduceMotion} onChange={(e) => setPref('reduceMotion', e.target.checked)} />
+          <Checkbox label="Collapse the sidebar by default" description="Show only icons in the navigation (you can toggle it any time)." checked={prefs.sidebarCollapsed} onChange={(e) => setPref('sidebarCollapsed', e.target.checked)} />
+        </CardBody>
+      </Card>
+      <Card>
+        <CardHeader title={<span className="inline-flex items-center gap-2"><WifiLow className="h-5 w-5" />Low-data mode</span>} description="Use ProfJero Edu on limited or expensive data." />
+        <CardBody className="space-y-3">
+          <div className="inline-flex rounded-xl bg-ink-100 p-1">
+            {(['auto', 'on', 'off'] as const).map((v) => <button key={v} onClick={() => setPref('lowData', v)} aria-pressed={prefs.lowData === v} className={cn('rounded-lg px-4 py-1.5 text-sm font-semibold capitalize', prefs.lowData === v ? 'bg-surface text-ink-900 shadow-sm' : 'text-ink-500')}>{v === 'auto' ? 'Automatic' : v}</button>)}
+          </div>
+          <p className="text-sm text-ink-600">Currently <strong>{lowData ? 'on' : 'off'}</strong>{prefs.lowData === 'auto' && ` — automatic mode turns it on when your device reports Data Saver or a 2G connection${networkIsConstrained() ? ' (detected now)' : ''}`}.</p>
+          <ul className="list-disc space-y-1 pl-5 text-sm text-ink-600">
+            <li>Images and videos load only when you tap them; smaller image sizes are used.</li>
+            <li>Web fonts, live presence and background refreshes are switched off.</li>
+            <li>Saved lessons, labs and your work still function offline.</li>
+          </ul>
+        </CardBody>
+      </Card>
+    </div>
+  );
+}
+
+function NotificationsSection() {
+  const toast = useToast();
+  const [state, setState] = useState<'loading' | 'on' | 'off' | 'blocked' | 'unsupported' | 'unconfigured'>('loading');
+  useEffect(() => {
+    (async () => {
+      if (!pushSupported()) return setState('unsupported');
+      if (!pushConfigured()) return setState('unconfigured');
+      if (Notification.permission === 'denied') return setState('blocked');
+      setState((await currentSubscription()) ? 'on' : 'off');
+    })();
+  }, []);
+  return (
+    <Card>
+      <CardHeader title={<span className="inline-flex items-center gap-2"><BellRing className="h-5 w-5" />Device notifications</span>} description="Receive live-class reminders, deadlines, grades and announcements on this device, even when the app is closed." />
+      <CardBody className="space-y-3">
+        {state === 'unsupported' && <Alert tone="warning">This browser does not support push notifications. On iPhone and iPad, add ProfJero Edu to your Home Screen first (Share → Add to Home Screen).</Alert>}
+        {state === 'unconfigured' && <Alert tone="info">Push notifications are not configured on this server yet.</Alert>}
+        {state === 'blocked' && <Alert tone="warning">Notifications are blocked for this site. Allow them in your browser's site settings, then reload.</Alert>}
+        {(state === 'on' || state === 'off') && (
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-ink-700">Push notifications are <strong>{state}</strong> on this device.</p>
+            {state === 'off'
+              ? <Button onClick={async () => { const r = await enablePush().catch((e) => { toast.error('Failed', errorMessage(e)); return 'error'; }); if (r === 'granted') { setState('on'); toast.success('Notifications enabled'); } else if (r === 'denied') setState('blocked'); }}>Turn on</Button>
+              : <Button variant="outline" onClick={async () => { await disablePush(); setState('off'); toast.info('Notifications turned off for this device'); }}>Turn off</Button>}
+          </div>
+        )}
+        <p className="text-xs text-ink-500">In-app notifications are always available under <Link to="/notifications" className="font-semibold text-brand-700">Notifications</Link>.</p>
+      </CardBody>
+    </Card>
   );
 }

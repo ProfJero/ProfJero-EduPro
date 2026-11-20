@@ -3,7 +3,7 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/features/authentication/AuthProvider';
 
-export type RoomType = 'course' | 'class' | 'session';
+export type RoomType = 'course' | 'class' | 'session' | 'group';
 export type PresenceMember = { user_id: string; name: string; avatar_url: string | null; role: 'teacher' | 'learner'; hand: boolean; hand_at?: string; where?: string };
 
 /**

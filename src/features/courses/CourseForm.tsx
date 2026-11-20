@@ -9,7 +9,7 @@ import { Alert, Button, Card, CardBody, Checkbox, Field, Input, PageHeader, Sele
 import { supabase, type Tables } from '@/lib/supabase';
 import { slugify, errorMessage } from '@/lib/utils';
 import { useAuth } from '@/features/authentication/AuthProvider';
-import { FileUploadButton } from '@/features/media/FileUploadButton';
+import { MediaPicker } from '@/features/media/MediaPicker';
 import { useCategories, levelLabel } from './catalog';
 
 const schema = z.object({
@@ -90,12 +90,8 @@ export function CourseFormFields({ initial, courseId, onSubmit, submitLabel, all
           <Field label="Estimated duration (hours)" error={errors.estimated_hours?.message as string | undefined}><Input type="number" step="0.5" min={0} {...register('estimated_hours')} /></Field>
         </div>
         <div>
-          <p className="text-sm font-semibold text-ink-800">Cover image</p>
-          <div className="mt-2 flex flex-wrap items-center gap-3">
-            {cover && <img src={cover} alt="" className="h-16 w-28 rounded-lg object-cover" />}
-            <FileUploadButton purpose="course_media" ctx={{ courseId }} label="Upload cover" onUploaded={(r) => setValue('cover_url', r.secure_url, { shouldDirty: true })} accept="image/*" />
-          </div>
-          <Input className="mt-2" placeholder="…or paste an https:// image URL" {...register('cover_url')} aria-label="Cover image URL" />
+          <p className="mb-2 text-sm font-semibold text-ink-800">Cover image</p>
+          <MediaPicker kind="image" courseId={courseId} value={cover} onChange={(url) => setValue('cover_url', url, { shouldDirty: true })} label="Choose a cover image from your device" />
         </div>
       </CardBody></Card>
 

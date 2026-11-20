@@ -1,20 +1,23 @@
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { BookOpen, CalendarCheck, Megaphone, Presentation, Video } from 'lucide-react';
+import { BookOpen, CalendarCheck, Crown, Megaphone, Presentation, Users, Video } from 'lucide-react';
 import { Badge, EmptyState, LoadingBlock, PageHeader, Tabs } from '@/components/ui';
 import { supabase, unwrap } from '@/lib/supabase';
 import { fmtDate, fmtDateTime } from '@/lib/dates';
 import { useAuth } from '@/features/authentication/AuthProvider';
 import { useUpcomingSessions } from '@/features/learning/queries';
 import { SessionCard } from '@/features/live/SessionCard';
+import { AnnouncementComposer } from '@/features/notifications/Announcements';
+import { PulsePrompt } from '@/features/intelligence/ClassPulse';
 import { ClassroomPanel } from './ClassroomPanel';
+import { ClassGroups, ClassProgress, JoinRequests, type ClassInfo } from './ClassManage';
+import { RollCall } from './TeacherClass';
 
 export function useClassInfo(classId?: string) {
   return useQuery({
     queryKey: ['class', classId],
     enabled: Boolean(classId),
-    queryFn: async () => unwrap(await supabase.from('school_classes').select('id, name, stream, level, description, room_label, color, school_id, academic_year_id, school:schools(name)').eq('id', classId!).maybeSingle()) as unknown as
-      { id: string; name: string; stream: string | null; level: string | null; description: string | null; room_label: string | null; color: string; school_id: string; academic_year_id: string | null; school: { name: string } | null } | null,
+    queryFn: async () => unwrap(await supabase.from('school_classes').select('id, name, stream, level, description, room_label, color, school_id, owner_id, subject, join_code, join_enabled, allow_guests, join_requires_approval, academic_year_id, school:schools(name)').eq('id', classId!).maybeSingle()) as unknown as ClassInfo | null,
   });
 }
 
@@ -44,14 +47,21 @@ export function ClassRoomPage() {
     queryFn: async () => unwrap(await supabase.from('class_attendance').select('attendance_date, status, note').eq('class_id', classId!).eq('user_id', user!.id).order('attendance_date', { ascending: false }).limit(60)),
   });
   const sessions = useUpcomingSessions({ classId, days: 30 });
+  const leader = useQuery({
+    queryKey: ['my-class-leader', classId, user?.id], enabled: Boolean(classId && user),
+    queryFn: async () => unwrap(await supabase.from('class_leaders').select('title, permissions').eq('class_id', classId!).eq('user_id', user!.id).maybeSingle()),
+  });
+  const can = (p: string) => Boolean(leader.data?.permissions.includes(p));
   if (isLoading) return <LoadingBlock />;
   if (!cls) return <EmptyState icon={<Presentation className="h-7 w-7" />} title="Class not found" />;
   const present = (attendance.data ?? []).filter((a) => a.status === 'present' || a.status === 'late').length;
   return (
     <div className="space-y-6">
-      <PageHeader back={{ to: '/learn/classes', label: 'Classes' }} eyebrow={cls.school?.name} title={`${cls.name}${cls.stream ? ` · ${cls.stream}` : ''}`} description={cls.description ?? cls.room_label ?? undefined} />
+      <PageHeader back={{ to: '/learn/classes', label: 'Classes' }} eyebrow={cls.school?.name ?? cls.subject ?? 'Class'} title={`${cls.name}${cls.stream ? ` · ${cls.stream}` : ''}`} description={cls.description ?? cls.room_label ?? undefined}
+        actions={leader.data ? <Badge tone="amber" icon={<Crown className="h-3.5 w-3.5" />}>{leader.data.title}</Badge> : undefined} />
       <Tabs tabs={[
-        { value: 'room', label: <span className="inline-flex items-center gap-1.5"><Presentation className="h-4 w-4" />Classroom</span>, content: <ClassroomPanel type="class" roomId={cls.id} canModerate={false} title={cls.name} /> },
+        { value: 'room', label: <span className="inline-flex items-center gap-1.5"><Presentation className="h-4 w-4" />Classroom</span>, content: <ClassroomPanel type="class" roomId={cls.id} canModerate={can('moderate_discussion') || can('pin_messages')} canBoard={can('post_board')} canPoll={can('create_polls')} title={cls.name} side={<PulsePrompt classId={cls.id} />} /> },
+        { value: 'groups', label: <span className="inline-flex items-center gap-1.5"><Users className="h-4 w-4" />Study groups</span>, content: <ClassGroups classId={cls.id} /> },
         { value: 'live', label: <span className="inline-flex items-center gap-1.5"><Video className="h-4 w-4" />Live classes</span>, content: sessions.data?.length ? <div className="space-y-3">{sessions.data.map((s) => <SessionCard key={s.id} s={s} compact />)}</div> : <EmptyState title="No live classes scheduled" /> },
         { value: 'courses', label: <span className="inline-flex items-center gap-1.5"><BookOpen className="h-4 w-4" />Subjects</span>, content: courses.data?.length ? (
           <div className="grid gap-3 sm:grid-cols-2">{courses.data.map((c) => c.course && <Link key={c.course.id} to={`/learn/courses/${c.course.id}`} className="card p-4 hover:border-brand-300"><p className="font-bold">{c.course.title}</p><p className="mt-1 line-clamp-2 text-sm text-ink-500">{c.course.short_description}</p></Link>)}</div>
@@ -65,6 +75,15 @@ export function ClassRoomPage() {
             ))}</ul>
           </div>
         ) : <EmptyState icon={<CalendarCheck className="h-6 w-6" />} title="No attendance recorded yet" /> },
+        ...(leader.data ? [{ value: 'lead', label: <span className="inline-flex items-center gap-1.5"><Crown className="h-4 w-4" />Leader tools</span>, content: (
+          <div className="space-y-5">
+            {can('approve_join_requests') && <JoinRequests classId={cls.id} />}
+            {can('take_attendance') && <RollCall classId={cls.id} />}
+            {can('post_announcements') && <AnnouncementComposer scope="class" classId={cls.id} />}
+            {can('view_progress') && <ClassProgress classId={cls.id} />}
+            {!['approve_join_requests', 'take_attendance', 'post_announcements', 'view_progress'].some(can) && <EmptyState icon={<Crown className="h-6 w-6" />} title={leader.data.title} description="Your leadership tools for the board, discussion and polls are on the Classroom tab." />}
+          </div>
+        ) }] : []),
       ]} />
     </div>
   );

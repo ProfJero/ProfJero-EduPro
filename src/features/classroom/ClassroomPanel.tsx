@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CheckCheck, CornerDownRight, Hand, HelpCircle, MessageCircle, Pin, PinOff, Presentation, Send, Trash2, Users, WifiOff, Pencil } from 'lucide-react';
+import { Award, CheckCheck, CornerDownRight, ThumbsUp, Hand, HelpCircle, MessageCircle, Pin, PinOff, Presentation, Send, Trash2, Users, WifiOff, Pencil } from 'lucide-react';
 import { Avatar, Badge, Button, Card, CardBody, CardHeader, EmptyState, Textarea, useToast } from '@/components/ui';
 import { supabase, unwrap, type Updates } from '@/lib/supabase';
 import { fromNow } from '@/lib/dates';
 import { cn, errorMessage } from '@/lib/utils';
 import { useAuth } from '@/features/authentication/AuthProvider';
 import { useClassPresence, type RoomType } from './usePresence';
+import { useLowData } from '@/features/preferences/PreferencesProvider';
+import { PollsPanel } from '@/features/connect/Polls';
 
-type Msg = { id: string; user_id: string; author_name: string; kind: string; body: string; parent_id: string | null; is_pinned: boolean; is_resolved: boolean; deleted_at: string | null; created_at: string };
+type Msg = { id: string; user_id: string; author_name: string; kind: string; body: string; parent_id: string | null; is_pinned: boolean; is_resolved: boolean; is_accepted: boolean; deleted_at: string | null; created_at: string };
 type Member = { user_id: string; name: string; avatar_url: string | null; member_role: string };
 
 export function useRoomMessages(type: RoomType, roomId?: string) {
@@ -16,7 +18,7 @@ export function useRoomMessages(type: RoomType, roomId?: string) {
   const q = useQuery({
     queryKey: ['room-messages', type, roomId],
     enabled: Boolean(roomId),
-    queryFn: async () => unwrap(await supabase.from('classroom_messages').select('id, user_id, author_name, kind, body, parent_id, is_pinned, is_resolved, deleted_at, created_at')
+    queryFn: async () => unwrap(await supabase.from('classroom_messages').select('id, user_id, author_name, kind, body, parent_id, is_pinned, is_resolved, is_accepted, deleted_at, created_at')
       .eq('room_type', type).eq('room_id', roomId!).is('deleted_at', null).order('created_at', { ascending: false }).limit(200)) as Msg[],
   });
   useEffect(() => {
@@ -43,18 +45,22 @@ export function useRoomMembers(type: RoomType, roomId?: string) {
 }
 
 /** The full "classroom": board, who's in class, raise-hand and discussion. */
-export function ClassroomPanel({ type, roomId, canModerate, title }: { type: RoomType; roomId: string; canModerate: boolean; title?: string }) {
+export function ClassroomPanel({ type, roomId, canModerate, title, canBoard, canPoll, side }: { type: RoomType; roomId: string; canModerate: boolean; title?: string; canBoard?: boolean; canPoll?: boolean; side?: React.ReactNode }) {
   const presence = useClassPresence(type, roomId, { role: canModerate ? 'teacher' : 'learner' });
   const msgs = useRoomMessages(type, roomId);
   const board = msgs.data?.find((m) => m.kind === 'board');
+  const lowData = useLowData();
   return (
     <div className="grid gap-5 xl:grid-cols-[1fr_20rem]">
       <div className="space-y-5">
-        <ClassBoard type={type} roomId={roomId} board={board} canModerate={canModerate} title={title} />
+        <ClassBoard type={type} roomId={roomId} board={board} canModerate={canBoard ?? canModerate} title={title} />
         <Discussion type={type} roomId={roomId} messages={msgs.data ?? []} loading={msgs.isLoading} canModerate={canModerate} />
       </div>
       <div className="space-y-5">
         <InClassNow type={type} roomId={roomId} presence={presence} canModerate={canModerate} />
+        <PollsPanel type={type} roomId={roomId} canCreate={canPoll ?? canModerate} compact={lowData} />
+        <TopHelpers type={type} roomId={roomId} />
+        {side}
       </div>
     </div>
   );
@@ -169,6 +175,29 @@ function Discussion({ type, roomId, messages, loading, canModerate }: { type: Ro
     onError: (e) => toast.error('Update failed', errorMessage(e)),
   });
 
+  const replyIds = useMemo(() => messages.filter((m) => m.parent_id).map((m) => m.id), [messages]);
+  const reactions = useQuery({
+    queryKey: ['room-reactions', type, roomId, replyIds.length], enabled: replyIds.length > 0,
+    queryFn: async () => {
+      const rows = unwrap(await supabase.from('message_reactions').select('message_id, user_id').eq('kind', 'helpful').in('message_id', replyIds.slice(0, 300)));
+      const out: Record<string, { count: number; mine: boolean }> = {};
+      rows.forEach((r) => { const o = (out[r.message_id] ??= { count: 0, mine: false }); o.count++; if (r.user_id === user?.id) o.mine = true; });
+      return out;
+    },
+  });
+  const react = useMutation({
+    mutationFn: async (v: { id: string; on: boolean }) => v.on
+      ? unwrap(await supabase.from('message_reactions').insert({ message_id: v.id, user_id: user!.id, kind: 'helpful' }))
+      : unwrap(await supabase.from('message_reactions').delete().eq('message_id', v.id).eq('user_id', user!.id).eq('kind', 'helpful')),
+    onSuccess: () => { void qc.invalidateQueries({ queryKey: ['room-reactions', type, roomId] }); void qc.invalidateQueries({ queryKey: ['peer-helpers', type, roomId] }); },
+    onError: (e) => toast.error('Could not save', errorMessage(e)),
+  });
+  const accept = useMutation({
+    mutationFn: async (id: string) => unwrap(await supabase.rpc('accept_answer', { p_message: id })),
+    onSuccess: () => { void invalidate(); void qc.invalidateQueries({ queryKey: ['peer-helpers', type, roomId] }); toast.success('Answer accepted', 'Thanks for recognising a classmate’s help.'); },
+    onError: (e) => toast.error('Could not accept', errorMessage(e)),
+  });
+
   const { top, replies } = useMemo(() => {
     const visible = messages.filter((m) => m.kind !== 'board');
     const replies = new Map<string, Msg[]>();
@@ -197,7 +226,8 @@ function Discussion({ type, roomId, messages, loading, canModerate }: { type: Ro
           {loading ? <p className="text-sm text-ink-500">Loading discussion…</p> : top.length === 0 ? (
             <EmptyState icon={<MessageCircle className="h-6 w-6" />} title="No messages yet" description="Start the conversation — ask a question or share what you learned." className="py-8" />
           ) : top.map((m) => (
-            <MessageItem key={m.id} m={m} replies={(replies.get(m.id) ?? []).sort((a, b) => a.created_at.localeCompare(b.created_at))} mine={m.user_id === user?.id} canModerate={canModerate}
+            <MessageItem key={m.id} m={m} replies={(replies.get(m.id) ?? []).sort((a, b) => Number(b.is_accepted) - Number(a.is_accepted) || a.created_at.localeCompare(b.created_at))} mine={m.user_id === user?.id} canModerate={canModerate}
+              reactions={reactions.data ?? {}} onHelpful={(id, on) => react.mutate({ id, on })} onAccept={(id) => accept.mutate(id)}
               onReply={(text) => post.mutate({ body: text, kind: canModerate ? 'answer' : 'message', parent_id: m.id })}
               onUpdate={(id, patch) => update.mutate({ id, patch })} />
           ))}
@@ -207,7 +237,8 @@ function Discussion({ type, roomId, messages, loading, canModerate }: { type: Ro
   );
 }
 
-function MessageItem({ m, replies, mine, canModerate, onReply, onUpdate }: { m: Msg; replies: Msg[]; mine: boolean; canModerate: boolean; onReply: (t: string) => void; onUpdate: (id: string, patch: Updates<'classroom_messages'>) => void }) {
+function MessageItem({ m, replies, mine, canModerate, onReply, onUpdate, reactions, onHelpful, onAccept }: { m: Msg; replies: Msg[]; mine: boolean; canModerate: boolean; onReply: (t: string) => void; onUpdate: (id: string, patch: Updates<'classroom_messages'>) => void;
+  reactions: Record<string, { count: number; mine: boolean }>; onHelpful: (id: string, on: boolean) => void; onAccept: (id: string) => void }) {
   const [replying, setReplying] = useState(false);
   const [text, setText] = useState('');
   const { user } = useAuth();
@@ -232,10 +263,15 @@ function MessageItem({ m, replies, mine, canModerate, onReply, onUpdate }: { m: 
           {replies.length > 0 && (
             <ul className="mt-3 space-y-2 border-l-2 border-ink-100 pl-3">
               {replies.map((r) => (
-                <li key={r.id} className="text-sm">
-                  <div className="flex items-center gap-2"><CornerDownRight className="h-3.5 w-3.5 text-ink-300" /><span className="font-semibold text-ink-800">{r.author_name}</span>{r.kind === 'answer' && <Badge tone="green">Teacher</Badge>}<span className="text-xs text-ink-400">{fromNow(r.created_at)}</span>
+                <li key={r.id} className={cn('text-sm', r.is_accepted && '-ml-3 rounded-r-lg border-l-2 border-growth-500 bg-growth-50/70 py-1.5 pl-3')}>
+                  <div className="flex items-center gap-2"><CornerDownRight className="h-3.5 w-3.5 text-ink-300" /><span className="font-semibold text-ink-800">{r.author_name}</span>{r.kind === 'answer' && <Badge tone="green">Teacher</Badge>}{r.is_accepted && <Badge tone="green" icon={<CheckCheck className="h-3 w-3" />}>Accepted answer</Badge>}<span className="text-xs text-ink-400">{fromNow(r.created_at)}</span>
                     {(canModerate || r.user_id === user?.id) && <button className="ml-auto text-ink-300 hover:text-red-600" aria-label="Remove reply" onClick={() => onUpdate(r.id, { deleted_at: new Date().toISOString() })}><Trash2 className="h-3.5 w-3.5" /></button>}</div>
                   <p className="ml-5 whitespace-pre-wrap text-ink-700">{r.body}</p>
+                  <div className="ml-5 mt-1 flex gap-3 text-xs font-semibold text-ink-500">
+                    <button disabled={r.user_id === user?.id} onClick={() => onHelpful(r.id, !reactions[r.id]?.mine)} aria-pressed={Boolean(reactions[r.id]?.mine)}
+                      className={cn('inline-flex items-center gap-1 disabled:opacity-50', reactions[r.id]?.mine ? 'text-brand-700' : 'hover:text-brand-700')}><ThumbsUp className="h-3.5 w-3.5" />Helpful{reactions[r.id]?.count ? ` · ${reactions[r.id].count}` : ''}</button>
+                    {m.kind === 'question' && (mine || canModerate) && !r.is_accepted && r.user_id !== m.user_id && <button className="inline-flex items-center gap-1 hover:text-growth-700" onClick={() => onAccept(r.id)}><CheckCheck className="h-3.5 w-3.5" />Accept answer</button>}
+                  </div>
                 </li>
               ))}
             </ul>
@@ -250,5 +286,19 @@ function MessageItem({ m, replies, mine, canModerate, onReply, onUpdate }: { m: 
         </div>
       </div>
     </article>
+  );
+}
+
+function TopHelpers({ type, roomId }: { type: RoomType; roomId: string }) {
+  const q = useQuery({ queryKey: ['peer-helpers', type, roomId], staleTime: 60_000, queryFn: async () => unwrap(await supabase.rpc('peer_helpers', { p_type: type, p_room: roomId })) });
+  if (!q.data?.length) return null;
+  return (
+    <Card>
+      <CardHeader title={<span className="inline-flex items-center gap-2"><Award className="h-5 w-5 text-sun-500" />Top peer helpers</span>} description="Classmates whose answers helped others" />
+      <CardBody><ol className="space-y-2">{q.data.map((h, i) => (
+        <li key={h.user_id} className="flex items-center gap-2 text-sm"><span className="w-4 text-xs font-bold text-ink-400">{i + 1}</span><Avatar name={h.name} size={26} /><span className="flex-1 truncate font-semibold">{h.name}</span>
+          <span className="text-xs text-ink-500" title="Accepted answers · helpful votes">✓ {h.accepted} · 👍 {h.helpful}</span></li>
+      ))}</ol></CardBody>
+    </Card>
   );
 }

@@ -39,10 +39,10 @@ export function useMyClasses() {
 
 export type LiveSessionRow = {
   id: string; title: string; description: string | null; provider: string; join_url: string; starts_at: string; duration_minutes: number; status: string;
-  course_id: string | null; class_id: string | null; host_id: string; cancel_reason: string | null; recording_url: string | null;
+  course_id: string | null; class_id: string | null; host_id: string; cancel_reason: string | null; recording_url: string | null; embed_in_app?: boolean;
   course: { title: string } | null; cls: { name: string } | null;
 };
-export const LIVE_SELECT = 'id, title, description, provider, join_url, starts_at, duration_minutes, status, course_id, class_id, host_id, cancel_reason, recording_url, course:courses(title), cls:school_classes(name)';
+export const LIVE_SELECT = 'id, title, description, provider, join_url, starts_at, duration_minutes, status, embed_in_app, course_id, class_id, host_id, cancel_reason, recording_url, course:courses(title), cls:school_classes(name)';
 
 /** Sessions visible to me (RLS restricts to my courses/classes). */
 export function useUpcomingSessions(opts: { days?: number; courseId?: string; classId?: string; includePast?: boolean } = {}) {

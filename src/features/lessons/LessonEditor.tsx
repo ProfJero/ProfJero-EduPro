@@ -8,7 +8,8 @@ import { Alert, Badge, Button, Card, CardBody, CardHeader, Checkbox, Dialog, Emp
 import { supabase, unwrap } from '@/lib/supabase';
 import { fmtDateTime, fromNow } from '@/lib/dates';
 import { cn, errorMessage } from '@/lib/utils';
-import { FileUploadButton } from '@/features/media/FileUploadButton';
+import { MediaPicker } from '@/features/media/MediaPicker';
+import { LAB_TOOLS } from '@/features/lab/catalog';
 import { BlockRenderer } from './BlockRenderer';
 import { BLOCK_TYPES, blockMeta, EMBED_HOSTS, newBlock, validateBlocks, type BlockType, type LessonBlock } from './blocks';
 
@@ -175,17 +176,17 @@ function BlockEditor({ block, courseId, onChange }: { block: LessonBlock; course
   const c = block.content;
   const set = (k: string, v: unknown) => onChange({ ...c, [k]: v });
   const s = (k: string) => (typeof c[k] === 'string' ? (c[k] as string) : '');
-  const upload = (accept: string) => <FileUploadButton purpose="course_media" ctx={{ courseId }} accept={accept} label="Upload" onUploaded={(r) => set('url', r.secure_url)} />;
+
   switch (block.type) {
     case 'heading':
       return <div className="grid gap-3 sm:grid-cols-[1fr_8rem]"><Input aria-label="Heading text" value={s('text')} onChange={(e) => set('text', e.target.value)} placeholder="Section heading" /><Select aria-label="Heading level" value={String(c.level ?? 2)} onChange={(e) => set('level', Number(e.target.value))}><option value="2">Large</option><option value="3">Small</option></Select></div>;
     case 'paragraph':
       return <div><Textarea aria-label="Text" rows={6} value={s('text')} onChange={(e) => set('text', e.target.value)} placeholder="Write your explanation…" /><p className="mt-1 text-xs text-ink-400">Tip: leave a blank line for a new paragraph. Use **bold** and `code`.</p></div>;
     case 'image':
-      return <div className="space-y-3"><div className="flex flex-wrap items-center gap-2"><Input aria-label="Image URL" value={s('url')} onChange={(e) => set('url', e.target.value)} placeholder="https://…" className="flex-1" />{upload('image/*')}</div><Field label="Alt text" hint="Describe the image for learners using screen readers"><Input value={s('alt')} onChange={(e) => set('alt', e.target.value)} /></Field><Input aria-label="Caption" value={s('caption')} onChange={(e) => set('caption', e.target.value)} placeholder="Caption (optional)" /></div>;
+      return <div className="space-y-3"><MediaPicker kind="image" courseId={courseId} value={s('url')} onChange={(u) => set('url', u)} /><Field label="Alt text" hint="Describe the image for learners using screen readers"><Input value={s('alt')} onChange={(e) => set('alt', e.target.value)} /></Field><Input aria-label="Caption" value={s('caption')} onChange={(e) => set('caption', e.target.value)} placeholder="Caption (optional)" /></div>;
     case 'video':
     case 'audio':
-      return <div className="space-y-3"><div className="flex flex-wrap items-center gap-2"><Input aria-label={`${block.type} URL`} value={s('url')} onChange={(e) => set('url', e.target.value)} placeholder={block.type === 'video' ? 'YouTube, Vimeo or uploaded video URL' : 'Audio URL'} className="flex-1" />{upload(block.type === 'video' ? 'video/mp4,video/webm' : 'audio/*')}</div><Input aria-label="Caption" value={s('caption')} onChange={(e) => set('caption', e.target.value)} placeholder="Caption (optional)" /><Field label="Transcript" hint="Recommended for accessibility and low-bandwidth learners"><Textarea rows={3} value={s('transcript')} onChange={(e) => set('transcript', e.target.value)} /></Field></div>;
+      return <div className="space-y-3"><MediaPicker kind={block.type === 'video' ? 'video' : 'audio'} allowLink={block.type === 'video'} courseId={courseId} value={s('url')} onChange={(u) => set('url', u)} /><Input aria-label="Caption" value={s('caption')} onChange={(e) => set('caption', e.target.value)} placeholder="Caption (optional)" /><Field label="Transcript" hint="Recommended for accessibility and low-bandwidth learners"><Textarea rows={3} value={s('transcript')} onChange={(e) => set('transcript', e.target.value)} /></Field></div>;
     case 'code':
       return <div className="space-y-3"><Select aria-label="Language" value={s('language') || 'python'} onChange={(e) => set('language', e.target.value)} className="w-48">{['python', 'javascript', 'html', 'css', 'sql', 'java', 'c', 'cpp', 'bash', 'text'].map((l) => <option key={l}>{l}</option>)}</Select><Textarea aria-label="Code" rows={8} value={s('code')} onChange={(e) => set('code', e.target.value)} className="font-mono text-sm" spellCheck={false} /><Field label="Expected output (optional)"><Textarea rows={2} value={s('output')} onChange={(e) => set('output', e.target.value)} className="font-mono text-sm" /></Field></div>;
     case 'callout':
@@ -214,7 +215,27 @@ function BlockEditor({ block, courseId, onChange }: { block: LessonBlock; course
     }
     case 'resource':
     case 'link':
-      return <div className="space-y-3"><Input aria-label="Title" value={s('title')} onChange={(e) => set('title', e.target.value)} placeholder="Title" /><div className="flex flex-wrap items-center gap-2"><Input aria-label="URL" value={s('url')} onChange={(e) => set('url', e.target.value)} placeholder="https://…" className="flex-1" />{block.type === 'resource' && upload('application/pdf,image/*,.doc,.docx,.ppt,.pptx,.xlsx')}</div><Input aria-label="Description" value={s('description')} onChange={(e) => set('description', e.target.value)} placeholder="Short description (optional)" /></div>;
+      return <div className="space-y-3"><Input aria-label="Title" value={s('title')} onChange={(e) => set('title', e.target.value)} placeholder="Title" />
+        {block.type === 'resource'
+          ? <MediaPicker kind="any" courseId={courseId} value={s('url')} onChange={(u) => set('url', u)} label="Choose a file (PDF, slides, worksheet…)" onUploaded={(_r, f) => { if (!s('title')) onChange({ ...c, url: _r.secure_url, title: f.name }); }} />
+          : <Input aria-label="URL" value={s('url')} onChange={(e) => set('url', e.target.value)} placeholder="https://…" />}
+        <Input aria-label="Description" value={s('description')} onChange={(e) => set('description', e.target.value)} placeholder="Short description (optional)" /></div>;
+    case 'lab':
+      return (
+        <div className="space-y-3">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Select aria-label="Lab" value={s('lab') || 'code'} onChange={(e) => onChange({ ...c, lab: e.target.value, tool: LAB_TOOLS.filter((t) => t.lab === e.target.value)[0]?.id })}>
+              <option value="code">Code Lab</option><option value="science">Science Lab</option><option value="math">Math Lab</option>
+            </Select>
+            <Select aria-label="Tool" value={s('tool')} onChange={(e) => set('tool', e.target.value)}>
+              {LAB_TOOLS.filter((t) => t.lab === (s('lab') || 'code')).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </Select>
+          </div>
+          <Input aria-label="Title" value={s('title')} onChange={(e) => set('title', e.target.value)} />
+          <Textarea aria-label="Instructions" rows={3} value={s('instructions')} onChange={(e) => set('instructions', e.target.value)} placeholder="What should learners do in the lab?" />
+          {(s('lab') || 'code') === 'code' && <Field label="Starter code (optional)"><Textarea rows={6} value={s('starter')} onChange={(e) => set('starter', e.target.value)} className="font-mono text-sm" spellCheck={false} /></Field>}
+        </div>
+      );
     case 'table': {
       const headers = (c.headers as string[]) ?? [];
       const rows = (c.rows as string[][]) ?? [];

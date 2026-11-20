@@ -1,0 +1,65 @@
+import { describe, expect, it } from 'vitest';
+import { encryptPayload } from '../src/push';
+import { b64url, unb64url } from '../src/util';
+import { parse, evaluate } from '../../src/features/lab/math/expr';
+
+async function hmac(key: Uint8Array<ArrayBuffer>, data: Uint8Array<ArrayBuffer>) {
+  const k = await crypto.subtle.importKey('raw', key, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  return new Uint8Array(await crypto.subtle.sign('HMAC', k, data));
+}
+const cat = (...p: Uint8Array[]) => { const o = new Uint8Array(p.reduce((n, x) => n + x.length, 0)); let i = 0; for (const x of p) { o.set(x, i); i += x.length; } return o; };
+const te = new TextEncoder();
+
+describe('web push aes128gcm (RFC 8291)', () => {
+  it('produces a payload the browser side can decrypt', async () => {
+    // "Browser" subscription keys
+    const ua = (await crypto.subtle.generateKey({ name: 'ECDH', namedCurve: 'P-256' }, true, ['deriveBits'])) as CryptoKeyPair;
+    const uaPub = new Uint8Array((await crypto.subtle.exportKey('raw', ua.publicKey)) as ArrayBuffer);
+    const auth = crypto.getRandomValues(new Uint8Array(16));
+    const msg = JSON.stringify({ title: 'New assignment', body: 'Due Friday', link: '/learn' });
+    const out = await encryptPayload(te.encode(msg), b64url(uaPub), b64url(auth));
+
+    // Decrypt as a user agent would
+    const salt = out.slice(0, 16);
+    const idlen = out[20];
+    const asPub = out.slice(21, 21 + idlen);
+    const cipher = out.slice(21 + idlen);
+    const asKey = await crypto.subtle.importKey('raw', asPub, { name: 'ECDH', namedCurve: 'P-256' }, false, []);
+    const ecdh = new Uint8Array(await crypto.subtle.deriveBits({ name: 'ECDH', public: asKey }, ua.privateKey, 256));
+    const prkKey = await hmac(auth, ecdh);
+    const ikm = (await hmac(prkKey, cat(te.encode('WebPush: info\0'), uaPub, asPub, new Uint8Array([1])) as Uint8Array<ArrayBuffer>)).slice(0, 32);
+    const prk = await hmac(salt, ikm);
+    const cek = (await hmac(prk, cat(te.encode('Content-Encoding: aes128gcm\0'), new Uint8Array([1])) as Uint8Array<ArrayBuffer>)).slice(0, 16);
+    const nonce = (await hmac(prk, cat(te.encode('Content-Encoding: nonce\0'), new Uint8Array([1])) as Uint8Array<ArrayBuffer>)).slice(0, 12);
+    const k = await crypto.subtle.importKey('raw', cek, 'AES-GCM', false, ['decrypt']);
+    const plain = new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: nonce }, k, cipher));
+    expect(plain[plain.length - 1]).toBe(2);
+    expect(new TextDecoder().decode(plain.slice(0, -1))).toBe(msg);
+    expect(Array.from(out.slice(16, 20))).toEqual([0, 0, 16, 0]);
+  });
+  it('base64url round-trips', () => {
+    const b = crypto.getRandomValues(new Uint8Array(33));
+    expect(Array.from(unb64url(b64url(b)))).toEqual(Array.from(b));
+  });
+});
+
+describe('Math Lab expression parser', () => {
+  const ev = (s: string, x = 0) => evaluate(parse(s), { x, a: 2, b: 3 });
+  it('handles precedence, powers and unary minus', () => {
+    expect(ev('2 + 3 * 4')).toBe(14);
+    expect(ev('-2^2')).toBe(-4);
+    expect(ev('2^3^2')).toBe(512);
+  });
+  it('supports implicit multiplication and functions', () => {
+    expect(ev('2x', 5)).toBe(10);
+    expect(ev('3(x+1)', 1)).toBe(6);
+    expect(ev('ab')).toBe(6);
+    expect(ev('sqrt(16) + abs(-3)')).toBe(7);
+    expect(ev('sin(pi/2)')).toBeCloseTo(1);
+  });
+  it('rejects unsafe or invalid input', () => {
+    expect(() => ev('alert(1)')).toThrow(); // never evaluated as code: unknown variables
+    expect(() => parse('2 +')).toThrow();
+    expect(() => parse('x; y')).toThrow();
+  });
+});

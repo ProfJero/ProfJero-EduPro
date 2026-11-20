@@ -5,7 +5,7 @@ import { Button, Card, CardBody, CardHeader, EmptyState, Field, Input, LoadingBl
 import { supabase, unwrap } from '@/lib/supabase';
 import { safeExternalUrl } from '@/lib/utils';
 import { useAuth } from '@/features/authentication/AuthProvider';
-import { FileUploadButton } from '@/features/media/FileUploadButton';
+import { MediaPicker } from '@/features/media/MediaPicker';
 import { useManagedCourses } from './queries';
 
 export function CourseResourcesManager({ courseId }: { courseId: string }) {
@@ -32,14 +32,14 @@ export function CourseResourcesManager({ courseId }: { courseId: string }) {
               <button aria-label={`Remove ${r.title}`} className="text-ink-400 hover:text-red-600" onClick={async () => { await supabase.from('course_resources').delete().eq('id', r.id); refresh(); }}><Trash2 className="h-4 w-4" /></button></li>
           ))}</ul>
         ) : <p className="text-sm text-ink-500">No resources yet.</p>}
-        <div className="grid gap-3 rounded-xl bg-ink-50 p-4 sm:grid-cols-[1fr_1fr_8rem]">
-          <Field label="Title"><Input value={title} onChange={(e) => setTitle(e.target.value)} /></Field>
-          <Field label="Link"><Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://" /></Field>
-          <Field label="Type"><Select value={kind} onChange={(e) => setKind(e.target.value)}><option value="link">Link</option><option value="document">Document</option><option value="image">Image</option><option value="video">Video</option><option value="audio">Audio</option><option value="other">Other</option></Select></Field>
-          <div className="flex flex-wrap items-center gap-2 sm:col-span-3">
-            <Button size="sm" leftIcon={<Plus className="h-4 w-4" />} disabled={!title.trim() || !url} onClick={add}>Add resource</Button>
-            <FileUploadButton purpose="course_media" ctx={{ courseId }} label="Upload a file" onUploaded={(r, f) => { setUrl(r.secure_url); if (!title) setTitle(f.name); setKind(r.resource_type === 'image' ? 'image' : r.resource_type === 'video' ? 'video' : 'document'); }} />
-          </div>
+        <div className="space-y-3 rounded-xl bg-ink-50 p-4">
+          <Field label="Title"><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Week 3 worksheet" /></Field>
+          <MediaPicker kind="any" courseId={courseId} value={url} onChange={setUrl} label="Choose a file from your device"
+            onUploaded={(r, f) => { if (!title) setTitle(f.name.replace(/\.[^.]+$/, '')); setKind(r.resource_type === 'image' ? 'image' : r.resource_type === 'video' ? 'video' : 'document'); }} />
+          <details className="text-sm"><summary className="cursor-pointer font-semibold text-ink-600">Or add a web link</summary>
+            <div className="mt-2 flex gap-2"><Input value={url} onChange={(e) => { setUrl(e.target.value); setKind('link'); }} placeholder="https://" aria-label="Link" /></div>
+          </details>
+          <Button size="sm" leftIcon={<Plus className="h-4 w-4" />} disabled={!title.trim() || !url} onClick={add}>Add resource</Button>
         </div>
       </CardBody>
     </Card>

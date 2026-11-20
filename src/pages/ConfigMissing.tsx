@@ -7,7 +7,7 @@ export function ConfigMissing() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-ink-950 p-6 text-white">
       <div className="max-w-lg text-center">
-        <img src="/brand/profjero-mark.webp" alt="" width={72} height={72} className="mx-auto h-18 w-18" />
+        <img src="/brand/mark.webp" alt="" width={72} height={72} className="mx-auto h-18 w-18" />
         <h1 className="mt-6 text-3xl font-extrabold text-white">ProfJero Edu is being set up</h1>
         <p className="mt-3 text-ink-300">
           Our digital learning platform is almost ready. The application is deployed, and its database connection is being finalised.

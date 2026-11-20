@@ -10,6 +10,8 @@ import { AppShell } from '@/layouts/AppShell';
 import { PwaUpdatePrompt } from '@/components/app/PwaPrompt';
 import { ConfigMissing } from '@/pages/ConfigMissing';
 import { isConfigured } from '@/lib/env';
+import { PreferencesProvider } from '@/features/preferences/PreferencesProvider';
+import { PrefsSync } from '@/features/preferences/PrefsSync';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -121,15 +123,40 @@ const AdminInbox = L(() => import('@/features/administration/AdminInbox'), 'Admi
 const AdminAudit = L(() => import('@/features/administration/AdminAudit'), 'AdminAudit');
 const AdminSettings = L(() => import('@/features/administration/AdminSettings'), 'AdminSettings');
 
+// Round 2
+const JoinClass = L(() => import('@/features/classroom/JoinClass'), 'JoinClassPage');
+const CalendarPage = L(() => import('@/features/calendar/CalendarPage'), 'CalendarPage');
+const MyGrades = L(() => import('@/features/analytics/MyGrades'), 'MyGrades');
+const Gradebook = L(() => import('@/features/analytics/Gradebook'), 'GradebookPage');
+const ConnectHub = L(() => import('@/features/connect/ConnectHub'), 'ConnectHub');
+const GroupRoom = L(() => import('@/features/connect/GroupRoom'), 'GroupRoom');
+const AiCompanion = L(() => import('@/features/intelligence/AiCompanion'), 'AiCompanion');
+const Studio = L(() => import('@/features/intelligence/ResourceStudio'), 'ResourceStudio');
+const StudioDoc = L(() => import('@/features/intelligence/ResourceStudio'), 'StudioDocument');
+const PulsePage = L(() => import('@/features/intelligence/ClassPulse'), 'ClassPulsePage');
+const ArenaHome = L(() => import('@/features/arena/ArenaHome'), 'ArenaHome');
+const ArenaPlay = L(() => import('@/features/arena/ArenaPlay'), 'ArenaPlay');
+const LabHome = L(() => import('@/features/lab/LabHome'), 'LabHome');
+const CodeLab = L(() => import('@/features/lab/code/CodeLab'), 'CodeLabPage');
+const SharedProject = L(() => import('@/features/lab/code/CodeLab'), 'SharedProjectPage');
+const ScienceLab = L(() => import('@/features/lab/science/ScienceLab'), 'ScienceLab');
+const MathLab = L(() => import('@/features/lab/math/MathLab'), 'MathLab');
+const AdminCurriculum = L(() => import('@/features/administration/AdminCurriculum'), 'AdminCurriculum');
+const AdminArena = L(() => import('@/features/administration/AdminArena'), 'AdminArena');
+const AdminIntegrations = L(() => import('@/features/administration/AdminIntegrations'), 'AdminIntegrations');
+const OAuthDone = L(() => import('@/features/live/OAuthDone'), 'OAuthDone');
+
 const S = ({ children }: { children: ReactNode }) => <Suspense fallback={<FullPageSpinner />}>{children}</Suspense>;
 
 export function App() {
   if (!isConfigured) return <ConfigMissing />;
   return (
     <QueryClientProvider client={queryClient}>
+      <PreferencesProvider>
       <ToastProvider>
         <BrowserRouter>
           <AuthProvider>
+            <PrefsSync />
             <S>
               <Routes>
                 <Route element={<PublicLayout />}>
@@ -147,6 +174,9 @@ export function App() {
                   <Route path="verify" element={<Verify />} />
                   <Route path="verify/:serial" element={<Verify />} />
                   <Route path="suspended" element={<Suspended />} />
+                  <Route path="join" element={<JoinClass />} />
+                  <Route path="join/:code" element={<JoinClass />} />
+                  <Route path="lab/share/:slug" element={<SharedProject />} />
                 </Route>
                 <Route element={<AuthLayout />}>
                   <Route path="login" element={<Login />} />
@@ -169,6 +199,22 @@ export function App() {
                   <Route path="invitations" element={<Invitations />} />
                   <Route path="teach/apply" element={<InstructorApply />} />
                   <Route path="discussions" element={<Discussions />} />
+                  <Route path="calendar" element={<CalendarPage />} />
+                  <Route path="connect" element={<ConnectHub />} />
+                  <Route path="connect/groups/:groupId" element={<GroupRoom />} />
+                  <Route path="ai" element={<AiCompanion />} />
+                  <Route path="arena" element={<ArenaHome />} />
+                  <Route path="arena/play/:slug" element={<ArenaPlay />} />
+                  <Route path="lab" element={<LabHome />} />
+                  <Route path="lab/code" element={<CodeLab />} />
+                  <Route path="lab/code/:projectId" element={<CodeLab />} />
+                  <Route path="lab/science" element={<ScienceLab />} />
+                  <Route path="lab/science/:tool" element={<ScienceLab />} />
+                  <Route path="lab/math" element={<MathLab />} />
+                  <Route path="lab/math/:tool" element={<MathLab />} />
+                  <Route path="integrations/:provider/done" element={<OAuthDone />} />
+                  <Route path="studio" element={<RequireWorkspace kind="teacher"><Studio /></RequireWorkspace>} />
+                  <Route path="studio/:docId" element={<RequireWorkspace kind="teacher"><StudioDoc /></RequireWorkspace>} />
 
                   <Route path="learn">
                     <Route index element={<LearnHome />} />
@@ -187,6 +233,7 @@ export function App() {
                     <Route path="resources" element={<Resources />} />
                     <Route path="progress" element={<Progress />} />
                     <Route path="certificates" element={<Certificates />} />
+                    <Route path="grades" element={<MyGrades />} />
                   </Route>
 
                   <Route path="teach" element={<RequireWorkspace kind="teacher"><OutletPassthrough /></RequireWorkspace>}>
@@ -210,6 +257,8 @@ export function App() {
                     <Route path="resources" element={<TeachResources />} />
                     <Route path="announcements" element={<TeachAnnouncements />} />
                     <Route path="reports" element={<TeachReports />} />
+                    <Route path="gradebook" element={<Gradebook />} />
+                    <Route path="pulse" element={<PulsePage />} />
                   </Route>
 
                   <Route path="school/:schoolId" element={<RequireWorkspace kind="school"><OutletPassthrough /></RequireWorkspace>}>
@@ -242,6 +291,9 @@ export function App() {
                     <Route path="inbox" element={<AdminInbox />} />
                     <Route path="audit" element={<AdminAudit />} />
                     <Route path="settings" element={<AdminSettings />} />
+                    <Route path="curriculum" element={<AdminCurriculum />} />
+                    <Route path="arena" element={<AdminArena />} />
+                    <Route path="integrations" element={<AdminIntegrations />} />
                   </Route>
                 </Route>
                 <Route path="home" element={<Navigate to="/" replace />} />
@@ -252,6 +304,7 @@ export function App() {
           </AuthProvider>
         </BrowserRouter>
       </ToastProvider>
+      </PreferencesProvider>
     </QueryClientProvider>
   );
 }

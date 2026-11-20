@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const BLOCK_TYPES = [
-  'heading', 'paragraph', 'image', 'video', 'audio', 'code', 'callout', 'activity', 'quiz', 'resource', 'link', 'table', 'steps', 'embed', 'divider',
+  'heading', 'paragraph', 'image', 'video', 'audio', 'code', 'callout', 'activity', 'quiz', 'lab', 'resource', 'link', 'table', 'steps', 'embed', 'divider',
 ] as const;
 export type BlockType = (typeof BLOCK_TYPES)[number];
 
@@ -29,6 +29,13 @@ export const blockSchemas = {
   table: z.object({ caption: z.string().max(200).optional(), headers: z.array(z.string().max(120)).max(10).default(['Column 1', 'Column 2']), rows: z.array(z.array(z.string().max(500))).max(100).default([['', '']]) }),
   steps: z.object({ title: z.string().max(160).optional(), steps: z.array(z.string().max(2000)).max(50).default(['']) }),
   embed: z.object({ url: optHttps, title: z.string().max(160).default('Interactive content'), height: z.number().int().min(200).max(1200).default(480) }),
+  lab: z.object({
+    lab: z.enum(['code', 'science', 'math']).default('code'),
+    tool: z.string().max(40).default('python'),
+    title: z.string().max(160).default('Try it in the lab'),
+    instructions: z.string().max(4000).default(''),
+    starter: z.string().max(20000).optional(),
+  }),
   divider: z.object({}).passthrough(),
 } satisfies Record<BlockType, z.ZodTypeAny>;
 
@@ -45,6 +52,7 @@ export const blockMeta: Record<BlockType, { label: string; hint: string }> = {
   callout: { label: 'Callout', hint: 'Tip, warning or key point' },
   activity: { label: 'Practical activity', hint: 'Hands-on task' },
   quiz: { label: 'Knowledge check', hint: 'Quick practice question' },
+  lab: { label: 'Lab activity', hint: 'Code, simulation or maths tool' },
   resource: { label: 'Downloadable resource', hint: 'Notes, worksheets, files' },
   link: { label: 'External link', hint: 'Further reading' },
   table: { label: 'Table', hint: 'Structured data' },

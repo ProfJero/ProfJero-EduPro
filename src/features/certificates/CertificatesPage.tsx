@@ -63,7 +63,7 @@ export function CertificateView() {
       </div>
       <div className="mx-auto aspect-[297/210] w-full max-w-[297mm] bg-surface p-[5%] shadow-xl print:shadow-none" style={{ border: `10px solid ${accent}` }}>
         <div className="flex h-full flex-col items-center justify-between border-2 border-ink-200 p-[4%] text-center">
-          <div className="flex items-center gap-3"><img src="/brand/profjero-mark.webp" alt="" className="h-12 w-12" /><span className="text-xl font-extrabold text-ink-900">Prof<span style={{ color: accent }}>Jero</span> Edu</span></div>
+          <div className="flex items-center gap-3"><img src="/brand/mark.webp" alt="" className="h-12 w-12" /><span className="text-xl font-extrabold text-ink-900">Prof<span style={{ color: accent }}>Jero</span> Edu</span></div>
           <div>
             <p className="text-sm font-bold uppercase tracking-[0.35em] text-ink-500">Certificate of completion</p>
             <p className="mt-6 text-base text-ink-600">This certifies that</p>

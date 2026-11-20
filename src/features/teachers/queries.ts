@@ -3,7 +3,7 @@ import { supabase, unwrap } from '@/lib/supabase';
 import { useAuth } from '@/features/authentication/AuthProvider';
 
 export type ManagedCourse = { id: string; slug: string; title: string; status: string; visibility: string; school_id: string | null; owner_id: string; cover_url: string | null; updated_at: string; is_premium: boolean; school: { name: string } | null };
-export type TeachingClass = { id: string; name: string; stream: string | null; level: string | null; color: string; school_id: string; school: { name: string } | null };
+export type TeachingClass = { id: string; name: string; stream: string | null; level: string | null; color: string; school_id: string | null; school: { name: string } | null };
 
 /** Courses I own or co-teach (plus, for school admins, their school's courses). */
 export function useManagedCourses() {

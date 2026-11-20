@@ -104,8 +104,13 @@ export function Register() {
         data: { full_name: v.full_name, intended_role: v.intended_role, learner_stage: v.learner_stage ?? null },
       },
     });
-    if (error) return setErr(error.message);
-    if (data.session) nav('/onboarding', { replace: true });
+    if (error) return setErr(/already registered/i.test(error.message) ? 'An account with this email already exists. Log in instead.' : error.message);
+    const dest = next === '/dashboard' ? '/onboarding' : next;
+    if (data.session) return nav(dest, { replace: true });
+    // Email confirmation is off on ProfJero Edu: sign straight in. If the
+    // project still requires confirmation, fall back to the check-email page.
+    const { data: signedIn } = await supabase.auth.signInWithPassword({ email: v.email, password: v.password });
+    if (signedIn.session) nav(dest, { replace: true });
     else nav(`/check-email?email=${encodeURIComponent(v.email)}`, { replace: true });
   };
   const roles = [
@@ -151,7 +156,7 @@ export function Register() {
         </div>
         <Button type="submit" size="lg" className="w-full" loading={isSubmitting}>Create account</Button>
       </form>
-      <p className="mt-6 text-center text-sm text-ink-600">Already have an account? <Link to="/login" className="font-semibold text-brand-700 hover:underline">Log in</Link></p>
+      <p className="mt-6 text-center text-sm text-ink-600">Already have an account? <Link to={`/login${params.get('next') ? `?next=${encodeURIComponent(params.get('next')!)}` : ''}`} className="font-semibold text-brand-700 hover:underline">Log in</Link></p>
     </div>
   );
 }

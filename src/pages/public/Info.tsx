@@ -43,7 +43,7 @@ export function About() {
             <p>We start with learners and institutions in Ghana, and we build for the world: multiple countries, time zones and institutions on one platform.</p>
           </div>
           <div className="card p-6">
-            <img src="/brand/profjero-logo.webp" alt="ProfJero — Unveiling the Extraordinary. Building solutions, empowering lives." width={720} height={628} className="mx-auto w-full max-w-sm" loading="lazy" />
+            <img src="/brand/logo-edu.webp" alt="ProfJero Edu" width={710} height={170} className="mx-auto w-full max-w-sm" loading="lazy" />
             <p className="mt-4 text-center text-sm text-ink-500">ProfJero Edu and ProfJero EduPro are products of <strong>ProfJero Digital Studio</strong>.</p>
           </div>
         </div>

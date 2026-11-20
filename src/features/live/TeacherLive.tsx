@@ -2,14 +2,17 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { CalendarPlus, ClipboardCheck, Pencil, Sparkles, XCircle } from 'lucide-react';
-import { Alert, Avatar, Button, Card, CardBody, CardHeader, Dialog, EmptyState, Field, Input, LoadingBlock, PageHeader, Select, Tabs, Textarea, useToast } from '@/components/ui';
+import { Alert, Avatar, Button, Card, CardBody, CardHeader, Checkbox, Dialog, EmptyState, Field, Input, LoadingBlock, PageHeader, Select, Tabs, Textarea, useToast } from '@/components/ui';
 import { supabase, unwrap } from '@/lib/supabase';
+import { env } from '@/lib/env';
+import { errorMessage } from '@/lib/utils';
 import { isoToLocalInput, localInputToIso, tzAbbrev } from '@/lib/dates';
 import { useAuth } from '@/features/authentication/AuthProvider';
 import { LIVE_SELECT, type LiveSessionRow } from '@/features/learning/queries';
 import { useTeachingTargets } from '@/features/assessments/TeacherAssessments';
 import { useRoomMembers } from '@/features/classroom/ClassroomPanel';
 import { SessionCard } from './SessionCard';
+import { liveApi, providerSlug } from './liveApi';
 import { PROVIDERS, PROVIDER_CHOICES, validateMeetingLink, type ProviderId } from './providers';
 
 export function TeacherLive() {
@@ -54,12 +57,13 @@ function SessionDialog({ session, defaultClass, onClose }: { session: LiveSessio
   const toast = useToast();
   const targets = useTeachingTargets();
   const isNew = session === 'new';
-  const [f, setF] = useState({ title: '', description: '', agenda: '', provider: 'google_meet' as ProviderId, join_url: '', target: '', starts_at: '', duration_minutes: 60, recording_url: '' });
+  const [f, setF] = useState({ title: '', description: '', agenda: '', provider: 'google_meet' as ProviderId, join_url: '', target: '', starts_at: '', duration_minutes: 60, recording_url: '', embed_in_app: false, provider_meeting_id: '' });
+  const [creating, setCreating] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   useEffect(() => {
-    if (session === 'new') setF((x) => ({ ...x, title: '', description: '', agenda: '', join_url: '', recording_url: '', starts_at: '', target: defaultClass ? `class:${defaultClass}` : '' }));
-    else if (session) setF({ title: session.title, description: session.description ?? '', agenda: '', provider: session.provider as ProviderId, join_url: session.join_url, target: session.course_id ? `course:${session.course_id}` : `class:${session.class_id}`, starts_at: isoToLocalInput(session.starts_at), duration_minutes: session.duration_minutes, recording_url: session.recording_url ?? '' });
+    if (session === 'new') setF((x) => ({ ...x, title: '', description: '', agenda: '', join_url: '', recording_url: '', starts_at: '', embed_in_app: false, provider_meeting_id: '', target: defaultClass ? `class:${defaultClass}` : '' }));
+    else if (session) setF({ title: session.title, description: session.description ?? '', agenda: '', provider: session.provider as ProviderId, join_url: session.join_url, target: session.course_id ? `course:${session.course_id}` : `class:${session.class_id}`, starts_at: isoToLocalInput(session.starts_at), duration_minutes: session.duration_minutes, recording_url: session.recording_url ?? '', embed_in_app: Boolean((session as LiveSessionRow & { embed_in_app?: boolean }).embed_in_app), provider_meeting_id: '' });
   }, [session, defaultClass]);
   const p = PROVIDERS[f.provider];
   const save = async () => {
@@ -69,7 +73,7 @@ function SessionDialog({ session, defaultClass, onClose }: { session: LiveSessio
     const starts = localInputToIso(f.starts_at);
     if (!starts) return setErr('Choose a date and time');
     const [scope, id] = (f.target || targets.options[0]?.v || '').split(':');
-    const row = { title: f.title.trim(), description: f.description || null, agenda: f.agenda || null, provider: f.provider, join_url: f.join_url.trim(), starts_at: starts, duration_minutes: f.duration_minutes, recording_url: f.recording_url || null };
+    const row = { title: f.title.trim(), description: f.description || null, agenda: f.agenda || null, provider: f.provider, join_url: f.join_url.trim(), starts_at: starts, duration_minutes: f.duration_minutes, recording_url: f.recording_url || null, embed_in_app: f.provider === 'jitsi' && f.embed_in_app, ...(f.provider_meeting_id ? { provider_meeting_id: f.provider_meeting_id } : {}) };
     setBusy(true);
     const res = isNew
       ? await supabase.from('live_sessions').insert({ ...row, host_id: user!.id, course_id: scope === 'course' ? id : null, class_id: scope === 'class' ? id : null })
@@ -94,8 +98,22 @@ function SessionDialog({ session, defaultClass, onClose }: { session: LiveSessio
         </div>
         <Field label="Meeting provider"><Select value={f.provider} onChange={(e) => setF({ ...f, provider: e.target.value as ProviderId })}>{PROVIDER_CHOICES.map((id) => <option key={id} value={id}>{PROVIDERS[id].name}</option>)}</Select></Field>
         <Field label="Meeting link" hint={p.help}>
-          <div className="flex gap-2"><Input value={f.join_url} onChange={(e) => setF({ ...f, join_url: e.target.value })} placeholder={p.placeholder} />{p.generateLink && <Button variant="outline" leftIcon={<Sparkles className="h-4 w-4" />} onClick={() => setF({ ...f, join_url: p.generateLink!(f.title) })}>Generate</Button>}</div>
+          <div className="flex gap-2"><Input value={f.join_url} onChange={(e) => setF({ ...f, join_url: e.target.value })} placeholder={p.placeholder} />{p.generateLink && <Button variant="outline" leftIcon={<Sparkles className="h-4 w-4" />} onClick={() => setF({ ...f, join_url: p.generateLink!(f.title) })}>Generate</Button>}
+            {(f.provider === 'zoom' || f.provider === 'google_meet') && env.apiBase && (
+              <Button variant="outline" loading={creating} leftIcon={<Sparkles className="h-4 w-4" />} onClick={async () => {
+                const starts = localInputToIso(f.starts_at);
+                if (!starts || f.title.trim().length < 2) return setErr('Add a title, date and time first');
+                setErr(null); setCreating(true);
+                try {
+                  const r = await liveApi<{ join_url: string; meeting_id: string }>(`/api/live/${providerSlug(f.provider)}/meetings`, { body: { title: f.title.trim(), starts_at: starts, duration_minutes: f.duration_minutes, agenda: f.agenda || f.description || '' } });
+                  setF((x) => ({ ...x, join_url: r.join_url, provider_meeting_id: r.meeting_id }));
+                  toast.success(`${p.name} meeting created`);
+                } catch (e) { setErr(`${errorMessage(e)} Connect your account in Settings → Apps, or paste a link.`); }
+                setCreating(false);
+              }}>Create</Button>
+            )}</div>
         </Field>
+        {f.provider === 'jitsi' && <Checkbox label="Hold the class inside ProfJero Edu" description="Learners join the video right here, next to the class board and chat — no app to install." checked={f.embed_in_app} onChange={(e) => setF({ ...f, embed_in_app: e.target.checked })} />}
         <Field label="Description"><Textarea rows={2} value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} /></Field>
         <Field label="Agenda"><Textarea rows={2} value={f.agenda} onChange={(e) => setF({ ...f, agenda: e.target.value })} /></Field>
         {!isNew && <Field label="Recording link (after class)"><Input value={f.recording_url} onChange={(e) => setF({ ...f, recording_url: e.target.value })} placeholder="https://" /></Field>}

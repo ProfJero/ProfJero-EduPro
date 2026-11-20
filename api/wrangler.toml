@@ -1,0 +1,15 @@
+# ProfJero Edu API worker. Secrets are set with `wrangler secret put NAME`
+# (or in the Cloudflare dashboard) — never committed. See docs/INTEGRATIONS.md.
+name = "profjero-edu-api"
+main = "dist/index.js"
+compatibility_date = "2026-11-20"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+
+[vars]
+APP_URL = "https://profjero-edupro.pages.dev"
+SUPABASE_URL = "https://nhfrjayhywzsfhacftdj.supabase.co"
+# SUPABASE_ANON_KEY is public (publishable) and set as a plain var at deploy time.
+
+[observability]
+enabled = true

@@ -1,9 +1,9 @@
 import { test, expect } from '@playwright/test';
-import { asUser, confirmationLink, localDateTime, login, toast, PASSWORD } from './helpers';
+import { asUser, localDateTime, login, toast, PASSWORD } from './helpers';
 
 const stamp = Date.now().toString(36);
 
-test('learner journey: register → verify → log in → browse → enrol → study → assessment → progress', async ({ page }) => {
+test('learner journey: register (no email step) → log in → browse → enrol → study → assessment → progress', async ({ page }) => {
   const email = `learner.${stamp}@example.test`;
   await page.goto('/register');
   await page.getByLabel('Full name').fill('Abena Test Learner');
@@ -11,17 +11,13 @@ test('learner journey: register → verify → log in → browse → enrol → s
   await page.getByRole('textbox', { name: 'Password' }).fill(PASSWORD);
   await page.getByText('I agree to the').click();
   await page.getByRole('button', { name: 'Create account' }).click();
-  await expect(page).toHaveURL(/check-email/);
-  await expect(page.getByRole('heading', { name: 'Check your email' })).toBeVisible();
-
-  // Verification link from the (local) inbox signs the user in and continues to onboarding.
-  await page.goto(await confirmationLink(email));
+  // Email confirmation is off: sign-up signs the learner straight in.
   await expect(page).toHaveURL(/onboarding/);
   await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByRole('button', { name: /Start learning/ }).click();
   await expect(page).toHaveURL(/learn\/explore/);
 
-  // Sign out and back in to prove the credentials work after verification.
+  // Sign out and back in to prove the credentials work.
   await page.goto('/settings');
   await page.getByRole('tab', { name: 'Account & security' }).click();
   await page.getByRole('button', { name: 'Sign out on this device' }).click();
@@ -242,7 +238,7 @@ test('platform owner journey: manage users → grant EduPro → review audit act
   await expect(owner.page.getByText('Registered users')).toBeVisible();
   await owner.page.goto('/admin/users');
   await owner.page.getByLabel('Search users').fill('otherstudent@profjero.test');
-  await owner.page.getByRole('button', { name: 'Search' }).click();
+  await owner.page.getByRole('main').getByRole('button', { name: 'Search', exact: true }).click();
   await owner.page.getByRole('button', { name: 'Actions for otherstudent@profjero.test' }).click();
   await owner.page.getByRole('menuitem', { name: 'Grant EduPro' }).click();
   await owner.page.getByRole('button', { name: 'Grant access' }).click();

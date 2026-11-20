@@ -8,7 +8,8 @@ type Opts = { w?: number; h?: number; crop?: 'fill' | 'limit' | 'fit'; gravity?:
  */
 export function cldUrl(src: string, o: Opts = {}): string {
   if (!src.includes('res.cloudinary.com') || !src.includes('/upload/')) return src;
-  const t = ['f_auto', 'q_auto', o.w && `w_${Math.round(o.w)}`, o.h && `h_${Math.round(o.h)}`, `c_${o.crop ?? 'limit'}`, o.gravity && `g_${o.gravity}`, 'dpr_1.0']
+  const low = typeof document !== 'undefined' && document.documentElement.classList.contains('low-data');
+  const t = ['f_auto', low ? 'q_auto:eco' : 'q_auto', o.w && `w_${Math.round(o.w)}`, o.h && `h_${Math.round(o.h)}`, `c_${o.crop ?? 'limit'}`, o.gravity && `g_${o.gravity}`, 'dpr_1.0']
     .filter(Boolean)
     .join(',');
   return src.replace('/upload/', `/upload/${t}/`);

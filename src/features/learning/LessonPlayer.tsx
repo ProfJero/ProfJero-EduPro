@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bookmark, BookmarkCheck, CheckCircle2, ChevronLeft, ChevronRight, Circle, CloudDownload, CloudOff, ListTree, Users, X, ClipboardCheck, ClipboardList } from 'lucide-react';
+import { Bookmark, BookmarkCheck, CheckCircle2, ChevronLeft, ChevronRight, Circle, CloudDownload, CloudOff, ListTree, Sparkles, Users, X, ClipboardCheck, ClipboardList } from 'lucide-react';
 import { Alert, Badge, Button, ButtonLink, EmptyState, LoadingBlock, useToast } from '@/components/ui';
 import { supabase, unwrap } from '@/lib/supabase';
 import { cn, errorMessage } from '@/lib/utils';
@@ -160,6 +160,7 @@ export function LessonPlayer() {
           <h1 className="mt-1 text-3xl font-extrabold leading-tight">{lesson?.title}</h1>
           {lesson?.summary && <p className="mt-2 text-lg text-ink-500">{lesson.summary}</p>}
           <div className="mt-4 flex flex-wrap items-center gap-2">
+            {enrolled && <ButtonLink size="sm" variant="ghost" to={`/ai?lesson=${lessonId}`} leftIcon={<Sparkles className="h-4 w-4 text-violet-600" />}>Ask AI about this lesson</ButtonLink>}
             {enrolled && <Button size="sm" variant="ghost" onClick={() => toggleBookmark.mutate()} leftIcon={bookmarkQ.data ? <BookmarkCheck className="h-4 w-4 text-brand-600" /> : <Bookmark className="h-4 w-4" />}>{bookmarkQ.data ? 'Bookmarked' : 'Bookmark'}</Button>}
             {enrolled && hasFeature(context, 'offline_downloads') && <Button size="sm" variant="ghost" onClick={toggleOffline} leftIcon={savedQ.data ? <CloudOff className="h-4 w-4" /> : <CloudDownload className="h-4 w-4" />}>{savedQ.data ? 'Remove offline copy' : 'Save for offline'}</Button>}
             {studyingHere.length > 0 && <Badge tone="green" icon={<Users className="h-3 w-3" />}>{studyingHere.length} classmate{studyingHere.length > 1 ? 's' : ''} studying this now</Badge>}

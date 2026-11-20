@@ -16,3 +16,4 @@ supabase/.temp
 .vscode/*
 !.vscode/extensions.json
 *.local
+api/dist/

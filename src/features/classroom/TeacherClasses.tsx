@@ -1,17 +1,21 @@
-import { Link } from 'react-router-dom';
-import { Presentation } from 'lucide-react';
-import { Badge, EmptyState, LoadingBlock, PageHeader } from '@/components/ui';
+import { Link, useSearchParams } from 'react-router-dom';
+import { Plus, Presentation } from 'lucide-react';
+import { Badge, Button, EmptyState, LoadingBlock, PageHeader } from '@/components/ui';
+import { CreateClassDialog } from './ClassManage';
 import { useTeachingClasses } from '@/features/teachers/queries';
 import { cn } from '@/lib/utils';
 import { classColor } from './LearnerClasses';
 
 export function TeacherClasses() {
   const { data, isLoading } = useTeachingClasses();
+  const [params, setParams] = useSearchParams();
+  const creating = params.get('new') === '1';
+  const setCreating = (o: boolean) => setParams((p) => { if (o) p.set('new', '1'); else p.delete('new'); return p; }, { replace: true });
   const bySchool = new Map<string, NonNullable<typeof data>>();
-  (data ?? []).forEach((c) => bySchool.set(c.school?.name ?? 'School', [...(bySchool.get(c.school?.name ?? 'School') ?? []), c]));
+  (data ?? []).forEach((c) => bySchool.set(c.school?.name ?? 'My own classes', [...(bySchool.get(c.school?.name ?? 'My own classes') ?? []), c]));
   return (
     <div>
-      <PageHeader title="My classes" description="Classes you teach, grouped by school. You only see the schools and classes you're assigned to." />
+      <PageHeader title="My classes" description="Your own classes and the school classes you're assigned to." actions={<Button leftIcon={<Plus className="h-4 w-4" />} onClick={() => setCreating(true)}>Create a class</Button>} />
       {isLoading ? <LoadingBlock /> : bySchool.size ? [...bySchool.entries()].map(([school, list]) => (
         <section key={school} className="mb-8">
           <h2 className="mb-3 text-sm font-bold uppercase tracking-wider text-ink-400">{school}</h2>
@@ -24,7 +28,8 @@ export function TeacherClasses() {
             ))}
           </div>
         </section>
-      )) : <EmptyState icon={<Presentation className="h-7 w-7" />} title="No classes assigned" description="Your school administrator assigns you to classes. Independent courses have their classroom inside the course editor." />}
+      )) : <EmptyState icon={<Presentation className="h-7 w-7" />} title="No classes yet" description="Create your own class and invite learners with a code or link — or wait for your school to assign you." action={<Button onClick={() => setCreating(true)}>Create a class</Button>} />}
+      <CreateClassDialog open={creating} onOpenChange={setCreating} />
     </div>
   );
 }

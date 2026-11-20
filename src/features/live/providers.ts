@@ -19,7 +19,7 @@ export const PROVIDERS: Record<ProviderId, ProviderAdapter> = {
   zoom: { id: 'zoom', name: 'Zoom', mode: 'oauth+link', color: 'bg-brand-600', hostPattern: /(^|\.)zoom\.us$/, placeholder: 'https://us05web.zoom.us/j/1234567890?pwd=…', help: 'Schedule the meeting in Zoom and paste the invite link. Automatic creation requires the owner to configure the Zoom Meetings API.' },
   jitsi: {
     id: 'jitsi', name: 'Jitsi Meet', mode: 'link', color: 'bg-violet-600', placeholder: 'https://meet.jit.si/ProfJeroEdu-…',
-    help: 'We can generate a hard-to-guess room name. The public meet.jit.si service is for testing — a dedicated Jitsi deployment is recommended for production.',
+    help: 'We generate a hard-to-guess room name. Tick “Hold the class inside ProfJero Edu” to run the video right on the class page. Long classes need Jitsi as a Service (JaaS) configured by the administrator; the free public server is for short tests.',
     generateLink: (title) => `https://meet.jit.si/ProfJeroEdu-${slug(title) || 'class'}-${crypto.randomUUID().slice(0, 8)}`,
   },
   teams: { id: 'teams', name: 'Microsoft Teams', mode: 'link', color: 'bg-indigo-600', hostPattern: /(^|\.)teams\.(microsoft|live)\.com$/, placeholder: 'https://teams.microsoft.com/l/meetup-join/…', help: 'Paste a Teams meeting link.' },

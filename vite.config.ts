@@ -9,12 +9,19 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       registerType: 'prompt',
       includeAssets: ['favicon.png', 'icons/apple-touch-icon.png', 'brand/*.webp'],
+      injectManifest: {
+        // Precache only the app shell; page chunks are cached on first use.
+        globPatterns: ['index.html', 'assets/*.css', 'assets/{index,react,supabase,query,ui}-*.js', 'brand/mark*.webp', 'icons/icon-192.png', 'favicon.png'],
+      },
       manifest: {
         name: 'ProfJero Edu',
         short_name: 'ProfJero Edu',
-        description: 'A digital learning ecosystem for learners, educators and institutions.',
+        description: 'Learning Without Limits — a digital learning ecosystem for learners, educators and institutions.',
         theme_color: '#1554D6',
         background_color: '#F7F9FC',
         display: 'standalone',
@@ -26,31 +33,10 @@ export default defineConfig({
           { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
           { src: '/icons/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
-      },
-      workbox: {
-        // App shell only. API responses (private data) are never cached by the SW.
-        // Precache only the app shell; page chunks are cached on first use
-        // (hashed, immutable) to keep the first install light on data.
-        globPatterns: ['index.html', 'assets/*.css', 'assets/{index,react,supabase,query,ui}-*.js', 'brand/*.webp', 'icons/icon-192.png', 'favicon.png'],
-        navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api\//],
-        runtimeCaching: [
-          {
-            urlPattern: ({ url, sameOrigin }) => sameOrigin && url.pathname.startsWith('/assets/'),
-            handler: 'CacheFirst',
-            options: { cacheName: 'app-chunks', expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 60 } },
-          },
-          {
-            urlPattern: ({ url }) => url.origin === 'https://fonts.googleapis.com' || url.origin === 'https://fonts.gstatic.com',
-            handler: 'StaleWhileRevalidate',
-            options: { cacheName: 'fonts', expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 } },
-          },
-          {
-            // Public course imagery from Cloudinary (never authenticated assets).
-            urlPattern: ({ url }) => url.hostname === 'res.cloudinary.com' && url.pathname.includes('/upload/'),
-            handler: 'CacheFirst',
-            options: { cacheName: 'public-media', expiration: { maxEntries: 120, maxAgeSeconds: 60 * 60 * 24 * 30 } },
-          },
+        shortcuts: [
+          { name: 'My Learning', url: '/learn/courses' },
+          { name: 'Code Lab', url: '/lab/code' },
+          { name: 'Challenge Arena', url: '/arena' },
         ],
       },
     }),
@@ -73,7 +59,7 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
-    include: ['src/**/*.test.{ts,tsx}'],
+    include: ['src/**/*.test.{ts,tsx}', 'api/test/**/*.test.ts'],
     setupFiles: ['src/test/setup.ts'],
   },
 });

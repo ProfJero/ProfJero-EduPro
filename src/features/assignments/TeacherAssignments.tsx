@@ -8,6 +8,7 @@ import { fmtDateTime, isoToLocalInput, localInputToIso } from '@/lib/dates';
 import { downloadCsv, errorMessage, safeExternalUrl } from '@/lib/utils';
 import { useAuth } from '@/features/authentication/AuthProvider';
 import { getSubmissionFileUrl } from '@/features/media/upload';
+import { MediaPicker } from '@/features/media/MediaPicker';
 import { useTeachingTargets } from '@/features/assessments/TeacherAssessments';
 import { ASSIGNMENT_SELECT, type AssignmentRow } from './queries';
 
@@ -128,7 +129,10 @@ function AssignmentSettings({ a, onSaved }: { a: AssignmentRow; onSaved: () => v
       <div>
         <p className="text-sm font-semibold">Attachments for learners</p>
         <ul className="mt-2 space-y-1.5">{f.attachments.map((x, i) => <li key={i} className="flex items-center gap-2 text-sm"><Link2 className="h-4 w-4 text-ink-400" /><span className="flex-1 truncate">{x.title}</span><button aria-label="Remove attachment" onClick={() => setF({ ...f, attachments: f.attachments.filter((_, j) => j !== i) })} className="text-ink-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></button></li>)}</ul>
-        <div className="mt-2 flex flex-col gap-2 sm:flex-row"><Input placeholder="Title" value={att.title} onChange={(e) => setAtt({ ...att, title: e.target.value })} aria-label="Attachment title" /><Input placeholder="https://" value={att.url} onChange={(e) => setAtt({ ...att, url: e.target.value })} aria-label="Attachment link" /><Button variant="outline" disabled={!att.title || !att.url.startsWith('https://')} onClick={() => { setF({ ...f, attachments: [...f.attachments, att] }); setAtt({ title: '', url: '' }); }}>Add</Button></div>
+        <div className="mt-2 space-y-2">
+          <MediaPicker kind="any" courseId={a.course_id ?? undefined} value={att.url} onChange={(u) => setAtt((x) => ({ ...x, url: u }))} label="Attach a file from your device" onUploaded={(_r, file) => setAtt((x) => ({ ...x, title: x.title || file.name }))} />
+          <div className="flex gap-2"><Input placeholder="Attachment title" value={att.title} onChange={(e) => setAtt({ ...att, title: e.target.value })} aria-label="Attachment title" /><Button variant="outline" disabled={!att.title || !att.url.startsWith('https://')} onClick={() => { setF({ ...f, attachments: [...f.attachments, att] }); setAtt({ title: '', url: '' }); }}>Add</Button></div>
+        </div>
       </div>
       <Button onClick={save} disabled={!f.submission_types.length}>Save settings</Button>
     </CardBody></Card>

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { BookOpen, CalendarCheck, Check, Presentation, Users, Video } from 'lucide-react';
+import { BarChart3, BookOpen, CalendarCheck, Check, Crown, KeyRound, Presentation, Users, UsersRound, Video } from 'lucide-react';
 import { Avatar, Badge, Button, ButtonLink, Card, CardBody, CardHeader, EmptyState, Input, LoadingBlock, PageHeader, Select, Tabs, useToast } from '@/components/ui';
 import { supabase, unwrap } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
@@ -11,22 +11,30 @@ import { SessionCard } from '@/features/live/SessionCard';
 import { AnnouncementComposer, AnnouncementList } from '@/features/notifications/Announcements';
 import { ClassroomPanel, useRoomMembers } from './ClassroomPanel';
 import { useClassInfo } from './ClassRoom';
+import { ClassGroups, ClassProgress, JoinRequests, JoinSettings, LeadersPanel } from './ClassManage';
 
 export function TeacherClassPage() {
   const { classId } = useParams();
   const { data: cls, isLoading } = useClassInfo(classId);
   const sessions = useUpcomingSessions({ classId, days: 30 });
+  const [params, setParams] = useSearchParams();
   if (isLoading) return <LoadingBlock />;
   if (!cls) return <EmptyState title="Class not found" description="You may not be assigned to this class." />;
+  const independent = !cls.school_id;
   return (
     <div className="space-y-6">
-      <PageHeader back={{ to: '/teach/classes', label: 'My classes' }} eyebrow={cls.school?.name} title={`${cls.name}${cls.stream ? ` · ${cls.stream}` : ''}`}
+      <PageHeader back={{ to: '/teach/classes', label: 'My classes' }} eyebrow={cls.school?.name ?? (independent ? `My class${cls.subject ? ` · ${cls.subject}` : ''} · code ${cls.join_code}` : undefined)} title={`${cls.name}${cls.stream ? ` · ${cls.stream}` : ''}`}
         actions={<ButtonLink to={`/teach/live?class=${cls.id}`} leftIcon={<Video className="h-4 w-4" />}>Schedule live class</ButtonLink>} />
-      <Tabs tabs={[
+      {independent && <JoinRequests classId={cls.id} />}
+      <Tabs value={params.get('tab') ?? 'room'} onValueChange={(v) => setParams((p) => { p.set('tab', v); return p; }, { replace: true })} tabs={[
         { value: 'room', label: <span className="inline-flex items-center gap-1.5"><Presentation className="h-4 w-4" />Classroom</span>, content: <ClassroomPanel type="class" roomId={cls.id} canModerate title={cls.name} /> },
         { value: 'roll', label: <span className="inline-flex items-center gap-1.5"><CalendarCheck className="h-4 w-4" />Roll call</span>, content: <RollCall classId={cls.id} /> },
         { value: 'students', label: <span className="inline-flex items-center gap-1.5"><Users className="h-4 w-4" />Students</span>, content: <Roster classId={cls.id} /> },
-        { value: 'courses', label: <span className="inline-flex items-center gap-1.5"><BookOpen className="h-4 w-4" />Subjects</span>, content: <ClassCourses classId={cls.id} /> },
+        ...(independent ? [{ value: 'join', label: <span className="inline-flex items-center gap-1.5"><KeyRound className="h-4 w-4" />Join & invite</span>, content: <JoinSettings cls={cls} /> }] : []),
+        { value: 'leaders', label: <span className="inline-flex items-center gap-1.5"><Crown className="h-4 w-4" />Leaders</span>, content: <LeadersPanel classId={cls.id} /> },
+        { value: 'groups', label: <span className="inline-flex items-center gap-1.5"><UsersRound className="h-4 w-4" />Groups</span>, content: <ClassGroups classId={cls.id} /> },
+        { value: 'progress', label: <span className="inline-flex items-center gap-1.5"><BarChart3 className="h-4 w-4" />Progress</span>, content: <ClassProgress classId={cls.id} /> },
+        ...(!independent ? [{ value: 'courses', label: <span className="inline-flex items-center gap-1.5"><BookOpen className="h-4 w-4" />Subjects</span>, content: <ClassCourses classId={cls.id} /> }] : []),
         { value: 'live', label: 'Live classes', content: sessions.data?.length ? <div className="space-y-3">{sessions.data.map((s) => <SessionCard key={s.id} s={s} compact />)}</div> : <EmptyState title="No live classes scheduled" action={<ButtonLink to={`/teach/live?class=${cls.id}`}>Schedule one</ButtonLink>} /> },
         { value: 'news', label: 'Announcements', content: <div className="grid gap-5 xl:grid-cols-2"><AnnouncementComposer scope="class" classId={cls.id} /><AnnouncementList scope="class" id={cls.id} manage /></div> },
       ]} />
@@ -107,7 +115,7 @@ function ClassCourses({ classId }: { classId: string }) {
   const qc = useQueryClient();
   const { data: cls } = useClassInfo(classId);
   const assigned = useQuery({ queryKey: ['class-courses', classId], queryFn: async () => unwrap(await supabase.from('class_courses').select('course:courses(id, title, status)').eq('class_id', classId)) as unknown as { course: { id: string; title: string; status: string } | null }[] });
-  const available = useQuery({ queryKey: ['school-courses-for', cls?.school_id], enabled: Boolean(cls), queryFn: async () => unwrap(await supabase.from('courses').select('id, title').eq('school_id', cls!.school_id).in('status', ['published', 'draft'])) });
+  const available = useQuery({ queryKey: ['school-courses-for', cls?.school_id], enabled: Boolean(cls?.school_id), queryFn: async () => unwrap(await supabase.from('courses').select('id, title').eq('school_id', cls!.school_id!).in('status', ['published', 'draft'])) });
   const [pick, setPick] = useState('');
   const ids = new Set((assigned.data ?? []).map((a) => a.course?.id));
   return (

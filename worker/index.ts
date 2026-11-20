@@ -15,6 +15,7 @@ export interface Env {
   ALLOWED_ORIGINS?: string; // comma separated, optional
   GOOGLE_CLIENT_ID?: string;
   ZOOM_CLIENT_ID?: string;
+  API_URL?: string; // the profjero-edu-api worker origin
 }
 
 type Purpose = 'avatar' | 'course_media' | 'submission';
@@ -114,23 +115,26 @@ function securityHeaders(res: Response, env: Env, isHtml: boolean): Response {
   h.set('x-content-type-options', 'nosniff');
   h.set('referrer-policy', 'strict-origin-when-cross-origin');
   h.set('x-frame-options', 'DENY');
-  h.set('permissions-policy', 'camera=(), microphone=(), geolocation=(), payment=()');
+  h.set('permissions-policy', 'camera=(self "https://meet.jit.si" "https://8x8.vc"), microphone=(self "https://meet.jit.si" "https://8x8.vc"), display-capture=(self "https://meet.jit.si" "https://8x8.vc"), fullscreen=(self "https://meet.jit.si" "https://8x8.vc"), geolocation=(), payment=()');
   h.set('strict-transport-security', 'max-age=31536000; includeSubDomains');
   if (isHtml) {
     const sbUrl = env.SUPABASE_URL ? new URL(env.SUPABASE_URL) : null;
     const sb = sbUrl ? sbUrl.origin : 'https://*.supabase.co';
     const sbWs = sbUrl ? `${sbUrl.protocol === 'https:' ? 'wss' : 'ws'}://${sbUrl.host}` : 'wss://*.supabase.co';
     const secure = !sbUrl || sbUrl.protocol === 'https:';
+    const api = (() => { try { return new URL(env.API_URL || 'https://profjero-edu-api.profjerodigitalstudio.workers.dev').origin; } catch { return ''; } })();
+    const cdn = 'https://cdn.jsdelivr.net';
+    const jitsi = 'https://meet.jit.si https://8x8.vc';
     h.set('content-security-policy', [
       "default-src 'self'",
-      "script-src 'self'",
-      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-      "font-src 'self' https://fonts.gstatic.com",
+      `script-src 'self' 'wasm-unsafe-eval' ${cdn} ${jitsi}`,
+      `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com ${cdn}`,
+      `font-src 'self' data: https://fonts.gstatic.com ${cdn}`,
       "img-src 'self' data: blob: https:",
       "media-src 'self' https://res.cloudinary.com https:",
-      `connect-src 'self' ${sb} ${sbWs} https://api.cloudinary.com https://res.cloudinary.com https://fonts.googleapis.com https://fonts.gstatic.com`,
-      "frame-src https://www.youtube-nocookie.com https://www.youtube.com https://player.vimeo.com https://docs.google.com https://phet.colorado.edu https://www.geogebra.org https://www.desmos.com https://trinket.io https://codepen.io https://replit.com https://onecompiler.com https://www.canva.com https://h5p.org https://scratch.mit.edu",
-      "worker-src 'self'",
+      `connect-src 'self' ${sb} ${sbWs} https://api.cloudinary.com https://res.cloudinary.com https://fonts.googleapis.com https://fonts.gstatic.com ${cdn} ${api}`,
+      `frame-src ${api} ${jitsi} https://www.youtube-nocookie.com https://www.youtube.com https://player.vimeo.com https://docs.google.com https://phet.colorado.edu https://www.geogebra.org https://www.desmos.com https://trinket.io https://codepen.io https://replit.com https://onecompiler.com https://www.canva.com https://h5p.org https://scratch.mit.edu`,
+      `worker-src 'self' blob: ${cdn}`,
       "manifest-src 'self'",
       "base-uri 'self'",
       "form-action 'self'",
