@@ -1,0 +1,210 @@
+@import 'tailwindcss';
+
+/* Class-based dark mode (html.dark), set by the ThemeProvider. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ---------------------------------------------------------------------------
+   ProfJero Edu design tokens.
+   - "brand" is the user-selectable ACCENT (default: ProfJero blue).
+   - "ink" is the neutral scale; dark mode re-maps it so every screen adapts.
+   - "surface" is the card/panel background (white in light, slate in dark).
+--------------------------------------------------------------------------- */
+@theme {
+  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'Cascadia Code', Menlo, Consolas, monospace;
+
+  --color-surface: #ffffff;
+  --color-surface-2: #f7f9fc;
+
+  --color-brand-50: #eef4ff;
+  --color-brand-100: #dbe6fe;
+  --color-brand-200: #bed2fd;
+  --color-brand-300: #91b4fb;
+  --color-brand-400: #5d8cf6;
+  --color-brand-500: #3468ee;
+  --color-brand-600: #1554d6;
+  --color-brand-700: #1443b0;
+  --color-brand-800: #163b8f;
+  --color-brand-900: #173571;
+
+  --color-ink-50: #f7f9fc;
+  --color-ink-100: #eef2f8;
+  --color-ink-200: #dde4ef;
+  --color-ink-300: #c3cddd;
+  --color-ink-400: #8d9ab1;
+  --color-ink-500: #637089;
+  --color-ink-600: #4a566d;
+  --color-ink-700: #364157;
+  --color-ink-800: #1f2a44;
+  --color-ink-900: #0b1f4d;
+  --color-ink-950: #071433;
+
+  --color-growth-50: #ecfdf5;
+  --color-growth-100: #d1fae6;
+  --color-growth-500: #16a36a;
+  --color-growth-600: #0f8a58;
+  --color-growth-700: #0c6e47;
+
+  --color-sun-50: #fff8eb;
+  --color-sun-100: #feeac7;
+  --color-sun-400: #f7b733;
+  --color-sun-500: #f59f0b;
+  --color-sun-700: #b45309;
+
+  --color-pro-500: #6d4aff;
+  --color-pro-600: #5b3bf0;
+
+  --color-board-800: #163d33;
+  --color-board-900: #0f2e26;
+
+  --radius-xl: 0.875rem;
+  --radius-2xl: 1.125rem;
+  --shadow-card: 0 1px 2px rgb(11 31 77 / 0.05), 0 1px 3px rgb(11 31 77 / 0.06);
+  --shadow-lift: 0 10px 30px -12px rgb(11 31 77 / 0.25);
+}
+
+/* ---- Accent themes ------------------------------------------------------- */
+[data-accent='forest'] {
+  --color-brand-50: #ecfdf5; --color-brand-100: #d1fae5; --color-brand-200: #a7f3d0; --color-brand-300: #6ee7b7; --color-brand-400: #34d399;
+  --color-brand-500: #10b981; --color-brand-600: #059669; --color-brand-700: #047857; --color-brand-800: #065f46; --color-brand-900: #064e3b;
+}
+[data-accent='violet'] {
+  --color-brand-50: #f5f3ff; --color-brand-100: #ede9fe; --color-brand-200: #ddd6fe; --color-brand-300: #c4b5fd; --color-brand-400: #a78bfa;
+  --color-brand-500: #8b5cf6; --color-brand-600: #7c3aed; --color-brand-700: #6d28d9; --color-brand-800: #5b21b6; --color-brand-900: #4c1d95;
+}
+[data-accent='lagoon'] {
+  --color-brand-50: #f0fdfa; --color-brand-100: #ccfbf1; --color-brand-200: #99f6e4; --color-brand-300: #5eead4; --color-brand-400: #2dd4bf;
+  --color-brand-500: #14b8a6; --color-brand-600: #0d9488; --color-brand-700: #0f766e; --color-brand-800: #115e59; --color-brand-900: #134e4a;
+}
+[data-accent='rose'] {
+  --color-brand-50: #fff1f2; --color-brand-100: #ffe4e6; --color-brand-200: #fecdd3; --color-brand-300: #fda4af; --color-brand-400: #fb7185;
+  --color-brand-500: #f43f5e; --color-brand-600: #e11d48; --color-brand-700: #be123c; --color-brand-800: #9f1239; --color-brand-900: #881337;
+}
+[data-accent='kente'] {
+  --color-brand-50: #fffbeb; --color-brand-100: #fef3c7; --color-brand-200: #fde68a; --color-brand-300: #fcd34d; --color-brand-400: #fbbf24;
+  --color-brand-500: #f59e0b; --color-brand-600: #c26a05; --color-brand-700: #a34f06; --color-brand-800: #853f0a; --color-brand-900: #6e340c;
+}
+[data-accent='indigo'] {
+  --color-brand-50: #eef2ff; --color-brand-100: #e0e7ff; --color-brand-200: #c7d2fe; --color-brand-300: #a5b4fc; --color-brand-400: #818cf8;
+  --color-brand-500: #6366f1; --color-brand-600: #4f46e5; --color-brand-700: #4338ca; --color-brand-800: #3730a3; --color-brand-900: #312e81;
+}
+
+/* ---- Dark mode ----------------------------------------------------------- */
+.dark {
+  color-scheme: dark;
+  --color-surface: #0f172a;
+  --color-surface-2: #0b1222;
+  --color-ink-50: #0a1020;
+  --color-ink-100: #131c30;
+  --color-ink-200: #1f2a40;
+  --color-ink-300: #33415a;
+  --color-ink-400: #66758f;
+  --color-ink-500: #94a3b8;
+  --color-ink-600: #b3bfd1;
+  --color-ink-700: #cdd6e3;
+  --color-ink-800: #e2e8f0;
+  --color-ink-900: #f1f5f9;
+  --color-ink-950: #050a18;
+
+  /* Tints become deep, low-glare versions of the accent. */
+  --color-brand-50: color-mix(in oklab, var(--color-brand-500) 16%, #0f172a);
+  --color-brand-100: color-mix(in oklab, var(--color-brand-500) 26%, #0f172a);
+  --color-brand-200: color-mix(in oklab, var(--color-brand-500) 40%, #0f172a);
+  --color-brand-700: color-mix(in oklab, var(--color-brand-300) 85%, white);
+  --color-brand-800: color-mix(in oklab, var(--color-brand-200) 80%, white);
+
+  --color-growth-50: #0c2a20; --color-growth-100: #11392b; --color-growth-700: #6ee7b7;
+  --color-sun-50: #2a2010; --color-sun-100: #3b2d12; --color-sun-700: #fcd34d;
+  --color-red-50: #2a1418; --color-red-100: #3a1a20; --color-red-200: #4c2028; --color-red-700: #fca5a5; --color-red-800: #fecaca;
+  --color-violet-50: #1f1838; --color-violet-100: #2b2150; --color-violet-200: #3a2c68; --color-violet-700: #c4b5fd;
+  --color-rose-100: #3a1a26; --color-rose-700: #fda4af; --color-teal-100: #0f3332; --color-teal-700: #5eead4;
+
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-lift: 0 14px 34px -12px rgb(0 0 0 / 0.65);
+}
+
+/* ---- Low-data mode: system fonts, no decorative effects ------------------ */
+.low-data {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+.low-data .decor { display: none !important; }
+.low-data *, .low-data *::before, .low-data *::after { backdrop-filter: none !important; }
+
+/* ---- Text size preference ------------------------------------------------- */
+html[data-text='lg'] { font-size: 112.5%; }
+html[data-text='sm'] { font-size: 93.75%; }
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    @apply bg-ink-50 text-ink-800 font-sans antialiased;
+  }
+  h1, h2, h3, h4 {
+    @apply text-ink-900 tracking-tight;
+  }
+  :focus-visible {
+    outline: 3px solid var(--color-brand-400);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  ::selection {
+    background: var(--color-brand-200);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  .container-page {
+    @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  }
+  .card {
+    @apply rounded-2xl border border-ink-200/80 bg-surface shadow-[var(--shadow-card)];
+  }
+  .prose-lesson {
+    @apply text-[1.0625rem] leading-relaxed text-ink-700;
+  }
+  .prose-lesson p + p {
+    @apply mt-4;
+  }
+  .board-surface {
+    background:
+      radial-gradient(120% 80% at 10% 0%, rgb(255 255 255 / 0.06), transparent 60%),
+      linear-gradient(160deg, var(--color-board-800), var(--color-board-900));
+  }
+  .pro-gradient {
+    background: linear-gradient(110deg, var(--color-brand-600), var(--color-pro-500));
+  }
+  .skip-link {
+    @apply sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-surface focus:px-4 focus:py-2 focus:text-brand-700 focus:shadow-lg;
+  }
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-ink-300) transparent;
+  }
+}
+
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgb(22 163 106 / 0.55); }
+  70% { box-shadow: 0 0 0 8px rgb(22 163 106 / 0); }
+  100% { box-shadow: 0 0 0 0 rgb(22 163 106 / 0); }
+}
+.live-dot {
+  animation: pulse-ring 2s infinite;
+}
+@keyframes hand-wave {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-12deg); }
+  75% { transform: rotate(12deg); }
+}
+.hand-wave {
+  animation: hand-wave 1.2s ease-in-out infinite;
+  transform-origin: 50% 90%;
+}
