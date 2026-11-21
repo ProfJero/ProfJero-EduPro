@@ -16,7 +16,7 @@ function parse(color: string): RGBA | null {
   const hit = cache.get(color);
   if (hit) return hit;
   const m = /^rgba?\(([\d.]+)[ ,]+([\d.]+)[ ,]+([\d.]+)(?:[ ,/]+([\d.]+%?))?\)$/.exec(color);
-  let out: RGBA | null = null;
+  let out: RGBA | null;
   if (m) out = [+m[1], +m[2], +m[3], m[4] == null ? 1 : m[4].endsWith('%') ? parseFloat(m[4]) / 100 : +m[4]];
   else {
     // oklab()/color()/color-mix() results: let the browser resolve it.

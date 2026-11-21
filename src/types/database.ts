@@ -171,17 +171,23 @@ isOneToOne: false
                   ]
                 },"arena_challenges": {
                   Row: {
-                    "config": NonNullable<Json>,"created_at": string,"created_by": string | null,"description": string,"difficulty": string,"game": string,"id": string,"level": number,"school_id": string | null,"slug": string,"status": string,"subject": string | null,"time_limit_seconds": number,"title": string,"track": string,"xp_reward": number
+                    "class_id": string | null,"config": NonNullable<Json>,"created_at": string,"created_by": string | null,"description": string,"difficulty": string,"game": string,"id": string,"level": number,"school_id": string | null,"slug": string,"status": string,"subject": string | null,"time_limit_seconds": number,"title": string,"track": string,"xp_reward": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "config"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string | null,"description"?: string,"difficulty"?: string,"game": string,"id"?: string,"level"?: number,"school_id"?: string | null,"slug": string,"status"?: string,"subject"?: string | null,"time_limit_seconds"?: number,"title": string,"track": string,"xp_reward"?: number
+                    "class_id"?: string | null,"config"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string | null,"description"?: string,"difficulty"?: string,"game": string,"id"?: string,"level"?: number,"school_id"?: string | null,"slug": string,"status"?: string,"subject"?: string | null,"time_limit_seconds"?: number,"title": string,"track": string,"xp_reward"?: number
                   }
                   Update: {
-                    "config"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string | null,"description"?: string,"difficulty"?: string,"game"?: string,"id"?: string,"level"?: number,"school_id"?: string | null,"slug"?: string,"status"?: string,"subject"?: string | null,"time_limit_seconds"?: number,"title"?: string,"track"?: string,"xp_reward"?: number
+                    "class_id"?: string | null,"config"?: NonNullable<Json>,"created_at"?: string,"created_by"?: string | null,"description"?: string,"difficulty"?: string,"game"?: string,"id"?: string,"level"?: number,"school_id"?: string | null,"slug"?: string,"status"?: string,"subject"?: string | null,"time_limit_seconds"?: number,"title"?: string,"track"?: string,"xp_reward"?: number
                   }
                   Relationships: [
                     {
+      foreignKeyName: "arena_challenges_class_id_fkey"
+      columns: ["class_id"]
+isOneToOne: false
+      referencedRelation: "school_classes"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "arena_challenges_school_id_fkey"
       columns: ["school_id"]
 isOneToOne: false
@@ -866,6 +872,52 @@ isOneToOne: false
       columns: ["parent_id"]
 isOneToOne: false
       referencedRelation: "curriculum_items"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"curriculum_resources": {
+                  Row: {
+                    "audience": string,"created_at": string,"grade": string | null,"id": string,"level": string,"page_url": string | null,"search": unknown,"source": string,"subject": string | null,"title": string,"url": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "audience"?: string,"created_at"?: string,"grade"?: string | null,"id"?: string,"level": string,"page_url"?: string | null,"search"?: never,"source"?: string,"subject"?: string | null,"title": string,"url": string
+                  }
+                  Update: {
+                    "audience"?: string,"created_at"?: string,"grade"?: string | null,"id"?: string,"level"?: string,"page_url"?: string | null,"search"?: never,"source"?: string,"subject"?: string | null,"title"?: string,"url"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"discussion_spaces": {
+                  Row: {
+                    "body": string | null,"class_id": string | null,"created_at": string,"created_by": string,"group_id": string | null,"id": string,"is_locked": boolean,"is_pinned": boolean,"last_activity_at": string,"message_count": number,"subject": string | null,"title": string,"visibility": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "body"?: string | null,"class_id"?: string | null,"created_at"?: string,"created_by": string,"group_id"?: string | null,"id"?: string,"is_locked"?: boolean,"is_pinned"?: boolean,"last_activity_at"?: string,"message_count"?: number,"subject"?: string | null,"title": string,"visibility"?: string
+                  }
+                  Update: {
+                    "body"?: string | null,"class_id"?: string | null,"created_at"?: string,"created_by"?: string,"group_id"?: string | null,"id"?: string,"is_locked"?: boolean,"is_pinned"?: boolean,"last_activity_at"?: string,"message_count"?: number,"subject"?: string | null,"title"?: string,"visibility"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "discussion_spaces_class_id_fkey"
+      columns: ["class_id"]
+isOneToOne: false
+      referencedRelation: "school_classes"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "discussion_spaces_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "discussion_spaces_group_id_fkey"
+      columns: ["group_id"]
+isOneToOne: false
+      referencedRelation: "study_groups"
       referencedColumns: ["id"]
     }
                   ]

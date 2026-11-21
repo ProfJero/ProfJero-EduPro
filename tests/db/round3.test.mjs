@@ -65,3 +65,50 @@ test('anyone can send themselves a test notification (rate limited)', async () =
   const { data } = await member.from('notifications').select('type').eq('type', 'test');
   assert.ok(data.length >= 1);
 });
+
+test('class challenges: only class members can see and play them', async () => {
+  const me = await uid(tutor);
+  assert.ifError((await member.rpc('join_class_by_code', { p_code: ids.code })).error);
+  const ch = await tutor.from('arena_challenges').insert({ slug: `cls-quiz-${Date.now()}`, game: 'quiz_rush', track: `t-${Date.now()}`, title: 'Class quiz', level: 1, created_by: me, class_id: ids.cls, status: 'draft', config: { count: 1 } }).select('id').single();
+  assert.ifError(ch.error);
+  assert.ifError((await tutor.from('arena_questions').insert({ challenge_id: ch.data.id, prompt: '2+2?', options: ['3', '4'], answer: '4', position: 0 })).error);
+  assert.ifError((await tutor.from('arena_challenges').update({ status: 'published' }).eq('id', ch.data.id)).error);
+  assert.equal((await outsider.from('arena_challenges').select('id').eq('id', ch.data.id)).data.length, 0, 'outsider cannot see it');
+  denied(await outsider.rpc('arena_start', { p_challenge: ch.data.id }), 'outsider cannot start it');
+  denied(await outsider.from('arena_questions').select('answer').eq('challenge_id', ch.data.id).then((r) => (r.data?.length ? r : { error: 'hidden' })), 'answers hidden');
+  const st = await member.rpc('arena_start', { p_challenge: ch.data.id });
+  assert.ifError(st.error);
+  const sub = await member.rpc('arena_submit', { p_attempt: st.data.attempt_id, p_answers: { [st.data.payload.questions[0].id]: '4' } });
+  assert.equal(sub.data.score, 1);
+  const { data: n } = await member.from('notifications').select('type').eq('type', 'challenge');
+  assert.ok(n.length >= 1, 'class was notified');
+  denied(await outsider.from('arena_challenges').insert({ slug: `x-${Date.now()}`, game: 'quiz_rush', track: 'x', title: 'Hijack', level: 1, created_by: await uid(outsider), class_id: ids.cls }), 'outsider cannot add challenges to the class');
+});
+
+test('discussions: open spaces for everyone, class/group spaces stay private', async () => {
+  const sid = (await uid(member));
+  const pub = await member.from('discussion_spaces').insert({ title: 'Best way to revise for WASSCE?', created_by: sid, visibility: 'public', subject: 'General' }).select('id').single();
+  assert.ifError(pub.error);
+  assert.equal((await outsider.from('discussion_spaces').select('id').eq('id', pub.data.id)).data.length, 1, 'anyone signed in sees open discussions');
+  assert.ifError((await outsider.from('classroom_messages').insert({ room_type: 'space', room_id: pub.data.id, user_id: await uid(outsider), kind: 'message', body: 'Past questions + timing yourself!' })).error, 'learners from other schools can reply');
+  const { data: after } = await member.from('discussion_spaces').select('message_count').eq('id', pub.data.id).single();
+  assert.equal(after.message_count, 1, 'reply counted');
+  assert.ifError((await member.from('discussion_spaces').update({ message_count: 999 }).eq('id', pub.data.id)).error);
+  assert.equal((await member.from('discussion_spaces').select('message_count').eq('id', pub.data.id).single()).data.message_count, 1, 'counts cannot be faked');
+  assert.ifError((await member.from('discussion_spaces').update({ is_locked: true }).eq('id', pub.data.id)).error);
+  denied(await outsider.from('classroom_messages').insert({ room_type: 'space', room_id: pub.data.id, user_id: await uid(outsider), kind: 'message', body: 'late' }), 'locked');
+
+  const cs = await member.from('discussion_spaces').insert({ title: 'Homework 3 help', created_by: sid, visibility: 'class', class_id: ids.cls }).select('id').single();
+  assert.ifError(cs.error, 'class members can start class discussions');
+  assert.equal((await outsider.from('discussion_spaces').select('id').eq('id', cs.data.id)).data.length, 0, 'outsiders cannot see class discussions');
+  denied(await outsider.from('classroom_messages').insert({ room_type: 'space', room_id: cs.data.id, user_id: await uid(outsider), kind: 'message', body: 'hi' }), 'or post in them');
+  denied(await outsider.from('discussion_spaces').insert({ title: 'Sneaky class topic', created_by: await uid(outsider), visibility: 'class', class_id: ids.cls }), 'non-members cannot create class discussions');
+
+  const g = await member.from('study_groups').insert({ name: 'Algebra squad', class_id: ids.cls, created_by: sid }).select('id').single();
+  assert.ifError(g.error);
+  assert.ifError((await member.from('discussion_spaces').insert({ title: 'Group plan for Friday', created_by: sid, visibility: 'group', group_id: g.data.id })).error, 'group leader creates group discussions');
+  const plain = await as('schoolteacher@profjero.test');
+  assert.ifError((await plain.rpc('join_class_by_code', { p_code: ids.code })).error);
+  assert.ifError((await plain.rpc('join_study_group', { p_group: g.data.id })).error);
+  denied(await plain.from('discussion_spaces').insert({ title: 'Not the leader', created_by: await uid(plain), visibility: 'group', group_id: g.data.id }), 'ordinary group members cannot');
+});

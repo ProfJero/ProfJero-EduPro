@@ -55,6 +55,7 @@ const SchoolApply = L(() => import('@/features/schools/SchoolApply'), 'SchoolApp
 const Invitations = L(() => import('@/features/schools/Invitations'), 'InvitationsPage');
 const InstructorApply = L(() => import('@/features/teachers/InstructorApply'), 'InstructorApply');
 const Discussions = L(() => import('@/features/classroom/Discussions'), 'DiscussionsPage');
+const SpaceRoom = L(() => import('@/features/classroom/Discussions'), 'SpaceRoom');
 // Learner
 const LearnHome = L(() => import('@/features/learning/LearnerHome'), 'LearnerHome');
 const MyLearning = L(() => import('@/features/learning/MyLearning'), 'MyLearning');
@@ -136,6 +137,8 @@ const StudioDoc = L(() => import('@/features/intelligence/ResourceStudio'), 'Stu
 const PulsePage = L(() => import('@/features/intelligence/ClassPulse'), 'ClassPulsePage');
 const ArenaHome = L(() => import('@/features/arena/ArenaHome'), 'ArenaHome');
 const ArenaPlay = L(() => import('@/features/arena/ArenaPlay'), 'ArenaPlay');
+const CurriculumLibrary = L(() => import('@/features/curriculum/CurriculumLibrary'), 'CurriculumLibrary');
+const ChallengeStudio = L(() => import('@/features/arena/ChallengeStudio'), 'ChallengeStudio');
 const LabHome = L(() => import('@/features/lab/LabHome'), 'LabHome');
 const CodeLab = L(() => import('@/features/lab/code/CodeLab'), 'CodeLabPage');
 const SharedProject = L(() => import('@/features/lab/code/CodeLab'), 'SharedProjectPage');
@@ -199,6 +202,8 @@ export function App() {
                   <Route path="invitations" element={<Invitations />} />
                   <Route path="teach/apply" element={<InstructorApply />} />
                   <Route path="discussions" element={<Discussions />} />
+                  <Route path="discussions/:spaceId" element={<SpaceRoom />} />
+                  <Route path="curriculum" element={<CurriculumLibrary />} />
                   <Route path="calendar" element={<CalendarPage />} />
                   <Route path="connect" element={<ConnectHub />} />
                   <Route path="connect/groups/:groupId" element={<GroupRoom />} />
@@ -258,6 +263,7 @@ export function App() {
                     <Route path="announcements" element={<TeachAnnouncements />} />
                     <Route path="reports" element={<TeachReports />} />
                     <Route path="gradebook" element={<Gradebook />} />
+                    <Route path="challenges" element={<ChallengeStudio />} />
                     <Route path="pulse" element={<PulsePage />} />
                   </Route>
 

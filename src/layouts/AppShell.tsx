@@ -42,6 +42,7 @@ function navFor(ws: Workspace): NavGroup[] {
           { to: '/learn/assignments', label: 'Assignments', icon: ClipboardList },
           { to: '/learn/grades', label: 'Grades', icon: Table2 },
           { to: '/learn/resources', label: 'Resources & Offline', icon: BookMarked },
+          { to: '/curriculum', label: 'Curriculum Library', icon: Library },
           { to: '/learn/certificates', label: 'Certificates', icon: Award },
         ] },
         { label: 'EduLab', tone: 'lab', items: [
@@ -80,13 +81,17 @@ function navFor(ws: Workspace): NavGroup[] {
           { to: '/teach/students', label: 'Students', icon: Users },
           { to: '/teach/announcements', label: 'Announcements', icon: Megaphone },
           { to: '/teach/resources', label: 'Course Resources', icon: FolderOpen },
+          { to: '/curriculum', label: 'Curriculum Library', icon: BookText },
         ] },
         { label: 'EduIntelligence', tone: 'intel', items: [
           { to: '/studio', label: 'Resource Studio', icon: Wand2, mobile: true },
           { to: '/teach/pulse', label: 'Class Pulse', icon: Gauge },
           { to: '/teach/reports', label: 'Reports & Insights', icon: BarChart3 },
         ] },
-        { label: 'EduLab', tone: 'lab', items: [{ to: '/lab', label: 'Labs & Activities', icon: FlaskConical }] },
+        { label: 'EduLab & Arena', tone: 'lab', items: [
+          { to: '/lab', label: 'Labs & Activities', icon: FlaskConical },
+          { to: '/teach/challenges', label: 'Challenge Studio', icon: Swords },
+        ] },
       ];
     case 'school': {
       const b = `/school/${ws.schoolId}`;

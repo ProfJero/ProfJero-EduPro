@@ -62,8 +62,9 @@ export function ArenaPlay() {
           {run.game !== 'code_quest' && <div className="mt-5 flex justify-end"><Button variant="secondary" loading={submit.isPending} onClick={() => submit.mutate()}>Finish now</Button></div>}
         </CardBody></Card>
       )}
+      {result?.passed && <Confetti />}
       {result && (
-        <Card><CardBody className="space-y-5">
+        <Card><CardBody className="space-y-5 motion-safe:animate-[pop_.45s_ease-out]">
           <div className="flex flex-col items-center gap-2 py-4 text-center">
             {result.passed ? <Trophy className="h-14 w-14 text-sun-500" /> : <RotateCcw className="h-12 w-12 text-ink-400" />}
             <h2 className="text-2xl font-extrabold">{result.passed ? (result.first_clear ? 'Level cleared!' : 'Great run!') : 'Keep practising'}</h2>
@@ -78,6 +79,38 @@ export function ArenaPlay() {
           </div>
         </CardBody></Card>
       )}
+      <ChallengeBoard challengeId={c.id} classId={(c as { class_id?: string | null }).class_id ?? null} refreshKey={result ? 1 : 0} />
+    </div>
+  );
+}
+
+function ChallengeBoard({ challengeId, classId, refreshKey }: { challengeId: string; classId: string | null; refreshKey: number }) {
+  const board = useQuery({
+    queryKey: ['challenge-board', challengeId, classId, refreshKey],
+    queryFn: async () => unwrap(await supabase.rpc('arena_leaderboard', { p_challenge: challengeId, p_scope: classId ? 'class' : 'global', p_scope_id: classId ?? undefined, p_limit: 10 })),
+  });
+  if (!board.data?.length) return null;
+  return (
+    <Card><CardBody>
+      <h2 className="flex items-center gap-2 font-bold"><Trophy className="h-5 w-5 text-sun-500" />{classId ? 'Class leaderboard' : 'Top scores'}</h2>
+      <ol className="mt-3 space-y-1.5">{board.data.map((r) => (
+        <li key={`${r.rank}-${r.name}`} className={cn('flex items-center gap-3 rounded-xl px-2 py-1.5 text-sm', r.is_me && 'bg-brand-50 ring-1 ring-brand-200')}>
+          <span className={cn('grid h-7 w-7 place-items-center rounded-full text-xs font-extrabold', r.rank === 1 ? 'bg-sun-400 text-ink-950' : r.rank === 2 ? 'bg-ink-200 text-ink-800' : r.rank === 3 ? 'bg-orange-200 text-orange-900' : 'text-ink-400')}>{r.rank}</span>
+          <span className="flex-1 truncate font-semibold">{r.name}{r.is_me && ' (you)'}</span>
+          <span className="tabular-nums font-bold">{Number(r.score)}</span>{r.time_ms != null && <span className="w-14 text-right text-xs tabular-nums text-ink-400">{(r.time_ms / 1000).toFixed(1)}s</span>}
+        </li>
+      ))}</ol>
+    </CardBody></Card>
+  );
+}
+
+function Confetti() {
+  const colors = ['#f59f0b', '#1554d6', '#16a36a', '#e11d48', '#7c3aed', '#14b8a6'];
+  return (
+    <div aria-hidden className="pointer-events-none fixed inset-0 z-[90] overflow-hidden motion-reduce:hidden">
+      {Array.from({ length: 70 }, (_, i) => (
+        <span key={i} className="absolute top-0 block h-2.5 w-1.5 rounded-sm" style={{ left: `${(i * 137) % 100}%`, background: colors[i % colors.length], animation: `confetti-fall ${2.2 + (i % 7) * 0.25}s ${(i % 10) * 0.08}s ease-in forwards` }} />
+      ))}
     </div>
   );
 }

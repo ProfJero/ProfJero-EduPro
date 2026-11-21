@@ -29,7 +29,8 @@ export function ArenaHome() {
   const summary = useArenaSummary();
   const challenges = useQuery({
     queryKey: ['arena-challenges'],
-    queryFn: async () => unwrap(await supabase.from('arena_challenges').select('id, slug, game, track, title, description, subject, level, difficulty, time_limit_seconds, xp_reward').eq('status', 'published').order('track').order('level')),
+    queryFn: async () => unwrap(await supabase.from('arena_challenges').select('id, slug, game, track, title, description, subject, level, difficulty, time_limit_seconds, xp_reward, created_by, class_id, cls:school_classes(name)').eq('status', 'published').order('track').order('level')) as unknown as
+      { id: string; slug: string; game: string; track: string; title: string; description: string; subject: string | null; level: number; difficulty: string; time_limit_seconds: number; xp_reward: number; created_by: string | null; class_id: string | null; cls: { name: string } | null }[],
   });
   const [period, setPeriod] = useState('week');
   const board = useQuery({ queryKey: ['arena-board', period], queryFn: async () => unwrap(await supabase.rpc('arena_leaderboard', { p_period: period, p_limit: 10 })) });
@@ -37,7 +38,10 @@ export function ArenaHome() {
   if (challenges.error) return <ErrorState error={challenges.error} onRetry={() => challenges.refetch()} />;
   const s = summary.data;
   const tracks = new Map<string, NonNullable<typeof challenges.data>>();
-  for (const c of challenges.data ?? []) tracks.set(c.track, [...(tracks.get(c.track) ?? []), c]);
+  const official = (challenges.data ?? []).filter((c) => !c.created_by);
+  const classChallenges = (challenges.data ?? []).filter((c) => c.class_id);
+  const community = (challenges.data ?? []).filter((c) => c.created_by && !c.class_id);
+  for (const c of official) tracks.set(c.track, [...(tracks.get(c.track) ?? []), c]);
   const isUnlocked = (list: NonNullable<typeof challenges.data>, idx: number) => idx === 0 || Boolean(s?.best[list[idx - 1].id]?.cleared);
   return (
     <div className="space-y-8">
@@ -50,6 +54,7 @@ export function ArenaHome() {
       </div>
       <div className="grid gap-6 xl:grid-cols-[1fr_22rem]">
         <div className="space-y-6">
+          {classChallenges.length > 0 && <ChallengeGrid title="Your class challenges" hint="Set by your teachers — top your class leaderboard!" list={classChallenges} best={s?.best ?? {}} tone="amber" />}
           {[...tracks.entries()].map(([track, list]) => {
             const meta = GAME_META[list[0].game];
             const cleared = list.filter((c) => s?.best[c.id]?.cleared).length;
@@ -77,6 +82,7 @@ export function ArenaHome() {
               </section>
             );
           })}
+          {community.length > 0 && <ChallengeGrid title="From teachers" hint="Public challenges created by ProfJero Edu teachers." list={community} best={s?.best ?? {}} tone="brand" />}
           {!tracks.size && <EmptyState icon={<Trophy className="h-8 w-8" />} title="No challenges yet" description="An administrator can publish challenges from Admin → Arena." />}
         </div>
         <aside className="space-y-6">
@@ -103,5 +109,25 @@ export function ArenaHome() {
         </aside>
       </div>
     </div>
+  );
+}
+
+function ChallengeGrid({ title, hint, list, best, tone }: { title: string; hint: string; list: { id: string; slug: string; game: string; title: string; xp_reward: number; difficulty: string; cls?: { name: string } | null }[]; best: Summary['best']; tone: 'amber' | 'brand' }) {
+  return (
+    <section>
+      <h2 className="text-lg font-extrabold">{title}</h2><p className="mb-3 text-sm text-ink-500">{hint}</p>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{list.map((c, i) => {
+        const meta = GAME_META[c.game];
+        const done = best[c.id]?.cleared;
+        return (
+          <Link key={c.id} to={`/arena/play/${c.slug}`} style={{ animationDelay: `${i * 50}ms` }} className="card group flex items-center gap-3 p-4 transition hover:-translate-y-1 hover:shadow-[var(--shadow-lift)] motion-safe:animate-[fade-up_.35s_ease-out_both]">
+            <span className={cn('grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br text-white transition group-hover:rotate-6 group-hover:scale-110', meta.color)}><meta.icon className="h-6 w-6" /></span>
+            <span className="min-w-0 flex-1"><span className="block truncate font-bold">{c.title}</span>
+              <span className="flex flex-wrap items-center gap-1.5 text-xs text-ink-500">{meta.name} · {c.xp_reward} XP{c.cls && <Badge tone={tone}>{c.cls.name}</Badge>}</span></span>
+            {done ? <Check className="h-5 w-5 text-growth-600" /> : <Zap className="h-5 w-5 text-sun-500 transition group-hover:scale-125" />}
+          </Link>
+        );
+      })}</div>
+    </section>
   );
 }
