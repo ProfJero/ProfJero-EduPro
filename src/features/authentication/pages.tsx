@@ -8,6 +8,7 @@ import { Alert, Button, ButtonLink, Checkbox, Field, Input, Select, Spinner } fr
 import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import { useAuth } from './AuthProvider';
+import { usePublicSettings } from '@/features/administration/settings';
 
 const passwordRule = z.string().min(8, 'Use at least 8 characters').max(72).regex(/[A-Za-z]/, 'Include a letter').regex(/[0-9]/, 'Include a number');
 const safeNext = (n: string | null) => (n && n.startsWith('/') && !n.startsWith('//') ? n : '/dashboard');
@@ -88,6 +89,7 @@ type RegisterForm = z.infer<typeof registerSchema>;
 
 export function Register() {
   const [params] = useSearchParams();
+  const settings = usePublicSettings();
   const nav = useNavigate();
   const [err, setErr] = useState<string | null>(null);
   const initialRole = params.get('role') === 'educator' ? 'educator' : params.get('role') === 'institution' ? 'institution' : 'learner';
@@ -118,6 +120,9 @@ export function Register() {
     { v: 'educator', label: 'Educator', icon: Presentation, text: 'Teach courses or classes' },
     { v: 'institution', label: 'School', icon: Building2, text: 'Represent an institution' },
   ] as const;
+  if (settings.data?.['signups.enabled'] === false) return (
+    <div><h1 className="text-3xl font-extrabold">Sign-ups are paused</h1><p className="mt-2 text-ink-600">New registrations are closed for a short while. Already have an account? <Link to="/login" className="font-semibold text-brand-700">Log in</Link>.</p></div>
+  );
   return (
     <div>
       <h1 className="text-3xl font-extrabold">Create your free account</h1>

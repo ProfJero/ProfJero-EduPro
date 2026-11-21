@@ -95,7 +95,7 @@ function ChallengeDialog({ onClose }: { onClose: () => void }) {
     mutationFn: async (publish: boolean) => {
       if (m.title.trim().length < 3) throw new Error('Give the challenge a title.');
       if (!m.scope) throw new Error('Choose who can play it.');
-      let config: Record<string, unknown> = {};
+      let config: Record<string, unknown>;
       let items: ReturnType<typeof parseQuestionBlocks> = [];
       if (game === 'quiz_rush' || game === 'word_builder') {
         items = parseQuestionBlocks(qs);

@@ -149,6 +149,20 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"app_errors": {
+                  Row: {
+                    "count": number,"day": string,"fingerprint": string,"last_seen_at": string,"message": string,"path": string | null,"release": string | null,"stack": string | null,"user_agent": string | null,"users": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "count"?: number,"day"?: string,"fingerprint": string,"last_seen_at"?: string,"message": string,"path"?: string | null,"release"?: string | null,"stack"?: string | null,"user_agent"?: string | null,"users"?: number
+                  }
+                  Update: {
+                    "count"?: number,"day"?: string,"fingerprint"?: string,"last_seen_at"?: string,"message"?: string,"path"?: string | null,"release"?: string | null,"stack"?: string | null,"user_agent"?: string | null,"users"?: number
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"arena_attempts": {
                   Row: {
                     "accuracy": number | null,"challenge_id": string,"deadline_at": string,"finished_at": string | null,"id": string,"max_score": number | null,"payload": NonNullable<Json>,"result": NonNullable<Json>,"score": number | null,"secret": NonNullable<Json>,"started_at": string,"status": string,"time_ms": number | null,"user_id": string,"verified": boolean,"xp_awarded": number
@@ -556,6 +570,32 @@ isOneToOne: false
       columns: ["class_id"]
 isOneToOne: false
       referencedRelation: "school_classes"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"class_events": {
+                  Row: {
+                    "all_day": boolean,"class_id": string | null,"course_id": string | null,"created_at": string,"created_by": string,"description": string | null,"ends_at": string | null,"id": string,"is_cancelled": boolean,"kind": string,"location": string | null,"remind_minutes": number,"reminded_at": string | null,"starts_at": string,"title": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "all_day"?: boolean,"class_id"?: string | null,"course_id"?: string | null,"created_at"?: string,"created_by": string,"description"?: string | null,"ends_at"?: string | null,"id"?: string,"is_cancelled"?: boolean,"kind"?: string,"location"?: string | null,"remind_minutes"?: number,"reminded_at"?: string | null,"starts_at": string,"title": string
+                  }
+                  Update: {
+                    "all_day"?: boolean,"class_id"?: string | null,"course_id"?: string | null,"created_at"?: string,"created_by"?: string,"description"?: string | null,"ends_at"?: string | null,"id"?: string,"is_cancelled"?: boolean,"kind"?: string,"location"?: string | null,"remind_minutes"?: number,"reminded_at"?: string | null,"starts_at"?: string,"title"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "class_events_class_id_fkey"
+      columns: ["class_id"]
+isOneToOne: false
+      referencedRelation: "school_classes"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "class_events_course_id_fkey"
+      columns: ["course_id"]
+isOneToOne: false
+      referencedRelation: "courses"
       referencedColumns: ["id"]
     }
                   ]
@@ -1321,14 +1361,14 @@ isOneToOne: false
                   ]
                 },"plans": {
                   Row: {
-                    "code": string,"created_at": string,"description": string | null,"id": string,"is_active": boolean,"is_default": boolean,"name": string,"price_label": string | null,"scope": string,"sort_order": number,"tier": string
+                    "billing_period": string,"code": string,"created_at": string,"currency": string,"description": string | null,"id": string,"is_active": boolean,"is_default": boolean,"name": string,"price_amount": number | null,"price_label": string | null,"scope": string,"sort_order": number,"tier": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "code": string,"created_at"?: string,"description"?: string | null,"id"?: string,"is_active"?: boolean,"is_default"?: boolean,"name": string,"price_label"?: string | null,"scope": string,"sort_order"?: number,"tier": string
+                    "billing_period"?: string,"code": string,"created_at"?: string,"currency"?: string,"description"?: string | null,"id"?: string,"is_active"?: boolean,"is_default"?: boolean,"name": string,"price_amount"?: number | null,"price_label"?: string | null,"scope": string,"sort_order"?: number,"tier": string
                   }
                   Update: {
-                    "code"?: string,"created_at"?: string,"description"?: string | null,"id"?: string,"is_active"?: boolean,"is_default"?: boolean,"name"?: string,"price_label"?: string | null,"scope"?: string,"sort_order"?: number,"tier"?: string
+                    "billing_period"?: string,"code"?: string,"created_at"?: string,"currency"?: string,"description"?: string | null,"id"?: string,"is_active"?: boolean,"is_default"?: boolean,"name"?: string,"price_amount"?: number | null,"price_label"?: string | null,"scope"?: string,"sort_order"?: number,"tier"?: string
                   }
                   Relationships: [
                     
@@ -2142,6 +2182,17 @@ isOneToOne: false
               "avatar_url": string,"avg_progress": number,"contexts": (string)[],"last_activity_at": string,"name": string,"user_id": string
             }[]
                            },
+"owner_daily_stats":
+{ Args: { "p_days"?: number }; Returns: {
+              "active_learners": number,"ai_requests": number,"arena_plays": number,"attempts": number,"day": string,"lessons_completed": number,"messages": number,"notifications": number,"signups": number,"submissions": number
+            }[]
+                           },
+"owner_housekeeping":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"owner_system_monitor":
+{ Args: Record<PropertyKey, never>; Returns: Json
+                           },
 "peer_helpers":
 { Args: { "p_room": string,"p_type": string }; Returns: {
               "accepted": number,"helpful": number,"name": string,"user_id": string
@@ -2173,6 +2224,9 @@ isOneToOne: false
                            },
 "reorder_modules":
 { Args: { "p_course": string,"p_ids": (string)[] }; Returns: undefined
+                           },
+"report_client_error":
+{ Args: { "p_message": string,"p_path"?: string,"p_release"?: string,"p_stack"?: string }; Returns: undefined
                            },
 "respond_class_invitation":
 { Args: { "p_accept": boolean,"p_invitation": string }; Returns: string

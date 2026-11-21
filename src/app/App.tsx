@@ -122,6 +122,7 @@ const AdminAnnouncements = L(() => import('@/features/notifications/Announcement
 const AdminSupport = L(() => import('@/features/support/SupportPages'), 'AdminSupport');
 const AdminInbox = L(() => import('@/features/administration/AdminInbox'), 'AdminInbox');
 const AdminAudit = L(() => import('@/features/administration/AdminAudit'), 'AdminAudit');
+const AdminMonitor = L(() => import('@/features/administration/AdminMonitor'), 'AdminMonitor');
 const AdminSettings = L(() => import('@/features/administration/AdminSettings'), 'AdminSettings');
 
 // Round 2
@@ -283,6 +284,7 @@ export function App() {
 
                   <Route path="admin" element={<RequireWorkspace kind="admin"><OutletPassthrough /></RequireWorkspace>}>
                     <Route index element={<AdminHome />} />
+                    <Route path="monitor" element={<AdminMonitor />} />
                     <Route path="users" element={<AdminUsers />} />
                     <Route path="schools" element={<AdminSchools />} />
                     <Route path="teachers" element={<AdminTeachers />} />

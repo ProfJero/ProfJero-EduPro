@@ -16,6 +16,8 @@ import type { Workspace } from '@/features/authentication/types';
 import { usePrefs } from '@/features/preferences/PreferencesProvider';
 import { PushPill, PushProvider } from '@/features/notifications/PushPrompt';
 import { ContrastGuard } from '@/components/app/ContrastGuard';
+import { ErrorBoundary } from '@/components/app/ErrorBoundary';
+import { usePublicSettings } from '@/features/administration/settings';
 import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import { useOfflineSync } from '@/features/learning/useOfflineSync';
@@ -116,31 +118,32 @@ function navFor(ws: Workspace): NavGroup[] {
     }
     case 'admin':
       return [
-        { items: [{ to: '/admin', label: 'Overview', icon: LayoutDashboard, end: true, mobile: true }] },
-        { label: 'People', items: [
-          { to: '/admin/users', label: 'Users', icon: UserCog, mobile: true },
-          { to: '/admin/schools', label: 'Schools', icon: Building2, mobile: true },
-          { to: '/admin/teachers', label: 'Teachers', icon: Presentation },
-        ] },
-        { label: 'Content', items: [
-          { to: '/admin/courses', label: 'Courses & Content', icon: BookOpen, mobile: true },
-          { to: '/admin/categories', label: 'Categories', icon: Tags },
-          { to: '/admin/curriculum', label: 'Curriculum (GES)', icon: BookText },
-          { to: '/admin/assessments', label: 'Assessments & Work', icon: ClipboardCheck },
-          { to: '/admin/certificates', label: 'Certificates', icon: Award },
-          { to: '/admin/live', label: 'Live Classes', icon: Video },
-          { to: '/admin/arena', label: 'Arena Challenges', icon: Swords },
+        { items: [
+          { to: '/admin', label: 'Owner dashboard', icon: LayoutDashboard, end: true, mobile: true },
+          { to: '/admin/monitor', label: 'System monitor', icon: Gauge, mobile: true },
         ] },
         { label: 'Business', items: [
-          { to: '/admin/subscriptions', label: 'Edu / EduPro Plans', icon: CreditCard },
-          { to: '/admin/integrations', label: 'Integrations', icon: Plug },
+          { to: '/admin/subscriptions', label: 'Plans, prices & subscriptions', icon: CreditCard, mobile: true },
+          { to: '/admin/users', label: 'Users & roles', icon: UserCog, mobile: true },
+          { to: '/admin/schools', label: 'Schools', icon: Building2 },
+          { to: '/admin/teachers', label: 'Teacher approvals', icon: Presentation },
         ] },
-        { label: 'Operations', items: [
+        { label: 'Content & safety', items: [
+          { to: '/admin/courses', label: 'Course reviews', icon: BookOpen },
+          { to: '/admin/curriculum', label: 'Curriculum (GES)', icon: BookText },
+          { to: '/admin/arena', label: 'Arena challenges', icon: Swords },
+          { to: '/admin/categories', label: 'Categories', icon: Tags },
+          { to: '/admin/certificates', label: 'Certificates', icon: Award },
+        ] },
+        { label: 'System', items: [
+          { to: '/admin/settings', label: 'System controls', icon: Settings },
+          { to: '/admin/integrations', label: 'Integrations & keys', icon: Plug },
           { to: '/admin/announcements', label: 'Announcements', icon: Megaphone },
-          { to: '/admin/support', label: 'Support', icon: LifeBuoy },
-          { to: '/admin/inbox', label: 'Contact Inbox', icon: Inbox },
-          { to: '/admin/audit', label: 'Audit Logs', icon: ScrollText },
-          { to: '/admin/settings', label: 'Settings', icon: Settings },
+          { to: '/admin/audit', label: 'Audit log', icon: ScrollText },
+        ] },
+        { label: 'Support', items: [
+          { to: '/admin/support', label: 'Support tickets', icon: LifeBuoy },
+          { to: '/admin/inbox', label: 'Contact inbox', icon: Inbox },
         ] },
       ];
   }
@@ -174,7 +177,8 @@ export function AppShell() {
   const { prefs, setPref } = usePrefs();
   const loc = useLocation();
   const ws = useMemo(() => activeWorkspace(loc.pathname, workspaces), [loc.pathname, workspaces]);
-  const groups = navFor(ws);
+  const settings = usePublicSettings();
+  const groups = navFor(ws).map((g) => ({ ...g, items: g.items.filter((i) => !(settings.data?.['arena.enabled'] === false && i.to === '/arena')) })).filter((g) => g.items.length);
   const [drawer, setDrawer] = useState(false);
   const [palette, setPalette] = useState(false);
   const collapsed = prefs.sidebarCollapsed;
@@ -223,7 +227,8 @@ export function AppShell() {
         <ConnectionBanner />
         <TopBar onMenu={() => setDrawer(true)} onSearch={() => setPalette(true)} />
         <main id="main" className="container-page pb-28 pt-6 lg:pb-12">
-          <div key={loc.pathname} className="motion-safe:animate-[page-in_.28s_ease-out]"><Outlet /></div>
+          <MaintenanceBanner />
+          <div key={loc.pathname} className="motion-safe:animate-[page-in_.28s_ease-out]"><ErrorBoundary resetKey={loc.pathname}><Outlet /></ErrorBoundary></div>
         </main>
       </div>
       <MobileNav items={groups.flatMap((g) => g.items).filter((i) => i.mobile).slice(0, 4)} onMore={() => setDrawer(true)} />
@@ -472,4 +477,11 @@ function CommandPalette({ open, onOpenChange, groups }: { open: boolean; onOpenC
       </Dlg.Portal>
     </Dlg.Root>
   );
+}
+
+function MaintenanceBanner() {
+  const { data } = usePublicSettings();
+  const msg = typeof data?.['maintenance.banner'] === 'string' ? (data['maintenance.banner'] as string) : '';
+  if (!msg.trim()) return null;
+  return <div role="status" className="mb-5 rounded-2xl border border-sun-400/40 bg-sun-50 px-4 py-3 text-sm font-semibold text-sun-700">📢 {msg}</div>;
 }

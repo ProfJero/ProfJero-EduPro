@@ -6,15 +6,16 @@ import { supabase, unwrap } from '@/lib/supabase';
 import { fmtDate } from '@/lib/dates';
 import { GrantDialog, useAdminUsers, type AdminUser } from '@/features/administration/AdminUsers';
 
-type Plan = { id: string; code: string; name: string; tier: string; scope: string; price_label: string | null; is_active: boolean; is_default: boolean; description: string | null };
+type Plan = { id: string; code: string; name: string; tier: string; scope: string; price_label: string | null; is_active: boolean; is_default: boolean; description: string | null; price_amount: number | null; currency: string; billing_period: string };
 type Feature = { key: string; name: string; kind: string };
 type PF = { plan_id: string; feature_key: string; enabled: boolean; limit_value: number | null };
 
 export function AdminSubscriptions() {
   return (
     <div>
-      <PageHeader title="Edu & EduPro" description="Plans, features and limits are managed here — never hard-coded. Grant EduPro to individuals, teachers or whole schools for pilots." />
+      <PageHeader title="Plans, prices & subscriptions" description="Set prices and what each plan includes. Grant EduPro to individuals, teachers or whole schools. No payment gateway is connected — subscriptions are granted manually." />
       <Tabs tabs={[
+        { value: 'prices', label: 'Prices', content: <Prices /> },
         { value: 'subs', label: 'Subscriptions', content: <Subscriptions /> },
         { value: 'grant', label: 'Grant access', content: <GrantPicker /> },
         { value: 'plans', label: 'Plans & features', content: <PlanMatrix /> },
@@ -95,5 +96,33 @@ function PlanMatrix() {
         </CardBody></Card>
       ))}</div>
     </div>
+  );
+}
+
+function Prices() {
+  const qc = useQueryClient();
+  const toast = useToast();
+  const { data, isLoading } = useQuery({ queryKey: ['plan-prices'], queryFn: async () => unwrap(await supabase.from('plans').select('*').order('tier').order('sort_order')) as unknown as Plan[] });
+  const save = async (id: string, patch: Partial<Plan>) => {
+    const { error } = await supabase.from('plans').update(patch as never).eq('id', id);
+    if (error) toast.error('Not saved', error.message); else { toast.success('Price saved'); void qc.invalidateQueries({ queryKey: ['plan-prices'] }); void qc.invalidateQueries({ queryKey: ['plan-matrix'] }); void qc.invalidateQueries({ queryKey: ['public-plans'] }); }
+  };
+  if (isLoading) return <LoadingBlock />;
+  return (
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{(data ?? []).map((p) => (
+      <Card key={p.id} className={p.tier === 'edupro' ? 'border-violet-200' : ''}><CardBody className="space-y-3">
+        <div className="flex items-center gap-2"><p className="flex-1 font-bold">{p.name}</p><Badge tone={p.tier === 'edupro' ? 'violet' : 'brand'}>{p.tier === 'edupro' ? 'EduPro' : 'Edu'}</Badge><Badge>{p.scope}</Badge></div>
+        <div className="grid grid-cols-[1fr_5rem] gap-2">
+          <Input type="number" min={0} step="0.01" defaultValue={p.price_amount ?? ''} placeholder="0.00" aria-label={`${p.name} price`} onBlur={(e) => { const v = e.target.value === '' ? null : Number(e.target.value); if (v !== p.price_amount) void save(p.id, { price_amount: v }); }} />
+          <Input defaultValue={p.currency} maxLength={3} aria-label="Currency" onBlur={(e) => { const v = e.target.value.toUpperCase(); if (/^[A-Z]{3}$/.test(v) && v !== p.currency) void save(p.id, { currency: v }); }} />
+        </div>
+        <select className="h-10 w-full rounded-xl border border-ink-200 bg-surface px-3 text-sm" value={p.billing_period} aria-label="Billing period" onChange={(e) => void save(p.id, { billing_period: e.target.value })}>
+          <option value="free">Free</option><option value="month">per month</option><option value="term">per term</option><option value="year">per year</option><option value="once">one-off</option>
+        </select>
+        <Input defaultValue={p.price_label ?? ''} placeholder="Label shown on the pricing page (optional)" aria-label="Price label" onBlur={(e) => { if ((e.target.value || null) !== p.price_label) void save(p.id, { price_label: e.target.value || null }); }} />
+        <p className="text-xs text-ink-500">Shown as: <b>{p.price_label || (p.billing_period === 'free' || !p.price_amount ? 'Free' : `${p.currency} ${Number(p.price_amount).toFixed(2)} ${p.billing_period === 'once' ? 'one-off' : `/ ${p.billing_period}`}`)}</b></p>
+        <Checkbox label="Plan is available" checked={p.is_active} onChange={(e) => void save(p.id, { is_active: e.target.checked })} />
+      </CardBody></Card>
+    ))}</div>
   );
 }

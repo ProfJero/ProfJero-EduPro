@@ -112,3 +112,35 @@ test('discussions: open spaces for everyone, class/group spaces stay private', a
   assert.ifError((await plain.rpc('join_study_group', { p_group: g.data.id })).error);
   denied(await plain.from('discussion_spaces').insert({ title: 'Not the leader', created_by: await uid(plain), visibility: 'group', group_id: g.data.id }), 'ordinary group members cannot');
 });
+
+test('teacher schedules notify the class and appear on members’ calendars only', async () => {
+  const start = new Date(Date.now() + 3 * 86400_000).toISOString();
+  const ev = await tutor.from('class_events').insert({ class_id: ids.cls, title: 'Mock test: fractions', kind: 'test', starts_at: start, created_by: await uid(tutor) }).select('id').single();
+  assert.ifError(ev.error);
+  const from = new Date().toISOString(), to = new Date(Date.now() + 7 * 86400_000).toISOString();
+  const cal = await member.rpc('my_calendar', { p_from: from, p_to: to });
+  assert.ok(cal.data.some((e) => e.id === ev.data.id && e.kind === 'event:test'), 'member sees it');
+  assert.ok(!(await outsider.rpc('my_calendar', { p_from: from, p_to: to })).data.some((e) => e.id === ev.data.id), 'outsider does not');
+  const { data: n } = await member.from('notifications').select('title').eq('type', 'schedule');
+  assert.ok(n.some((x) => x.title.includes('Mock test')), 'member notified');
+  denied(await member.from('class_events').insert({ class_id: ids.cls, title: 'Fake event', starts_at: start, created_by: await uid(member) }), 'learners cannot add class events');
+});
+
+test('owner console: stats, on-demand monitor, housekeeping and error reports are owner-only', async () => {
+  const st = await owner.rpc('owner_daily_stats', { p_days: 7 });
+  assert.ifError(st.error);
+  assert.equal(st.data.length, 7);
+  const mon = await owner.rpc('owner_system_monitor');
+  assert.ifError(mon.error);
+  assert.ok(mon.data.database_bytes > 0 && Array.isArray(mon.data.tables) && mon.data.free_tier.mau === 50000);
+  assert.ifError((await owner.rpc('owner_housekeeping')).error);
+  denied(await member.rpc('owner_system_monitor'), 'learners cannot run the monitor');
+  denied(await member.rpc('owner_daily_stats', { p_days: 7 }));
+  assert.ifError((await mk().rpc('report_client_error', { p_message: 'TypeError: test', p_path: '/ai' })).error, 'anyone can report a crash');
+  assert.ifError((await member.rpc('report_client_error', { p_message: 'TypeError: test', p_path: '/ai' })).error);
+  const errs = await owner.from('app_errors').select('message, count').eq('message', 'TypeError: test');
+  assert.equal(errs.data[0].count, 2, 'deduplicated per day');
+  assert.equal((await member.from('app_errors').select('message')).data.length, 0, 'only the owner reads errors');
+  assert.ifError((await owner.from('plans').update({ price_amount: 25, billing_period: 'month' }).eq('code', 'edupro_individual')).error);
+  denied(await member.from('plans').update({ price_amount: 0 }).eq('code', 'edupro_individual').select().single(), 'learners cannot change prices');
+});
