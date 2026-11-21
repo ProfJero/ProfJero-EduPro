@@ -85,3 +85,23 @@ describe('VAPID key formats', () => {
     expect(JSON.parse(new TextDecoder().decode(unb64url(c))).aud).toBe('https://push.example.test');
   });
 });
+
+describe('Circuit Builder solver (nodal analysis)', () => {
+  it('series: 6 V across two 12 Ω bulbs gives ≈0.25 A', async () => {
+    const { solve, PRESETS } = await import('../../src/features/lab/science/CircuitBuilder');
+    const r = solve(PRESETS.series);
+    expect(Math.abs(r['h-2-2'].i)).toBeCloseTo(6 / 24, 2); // ammeter
+    expect(Math.abs(r['h-1-0'].dv)).toBeCloseTo(3, 1); // each bulb gets half
+  });
+  it('parallel: two 12 Ω bulbs draw ≈1 A in total, each gets the full 6 V', async () => {
+    const { solve, PRESETS } = await import('../../src/features/lab/science/CircuitBuilder');
+    const r = solve(PRESETS.parallel);
+    expect(Math.abs(r['h-0-2'].i)).toBeCloseTo(1, 1);
+    expect(Math.abs(r['v-1-0'].dv)).toBeGreaterThan(5.8); // small drop across the cell's internal resistance
+  });
+  it('an open switch stops the current', async () => {
+    const { solve, PRESETS } = await import('../../src/features/lab/science/CircuitBuilder');
+    const p = { ...PRESETS.series, 'v-3-0': { kind: 'switch' as const, value: 0, on: false } };
+    expect(Math.abs(solve(p)['h-2-2'].i)).toBeLessThan(1e-6);
+  });
+});

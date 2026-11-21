@@ -5,6 +5,8 @@ import { Button, Card, CardBody, Select } from '@/components/ui';
 import { usePrefs } from '@/features/preferences/PreferencesProvider';
 import { cn } from '@/lib/utils';
 import { LabToolShell, Readout, Slider } from '../LabToolShell';
+import { CircuitBuilder } from './CircuitBuilder';
+import { FlameTest, GasTests, HookesLaw, Indicators, ReactionRates } from './Practicals';
 
 const fmt = (n: number, d = 2) => (Number.isFinite(n) ? n.toFixed(d) : '—');
 
@@ -28,11 +30,11 @@ function useClock(running: boolean) {
 
 export function ScienceLab() {
   const { tool } = useParams();
-  if (!tool) return <Navigate to="/lab/science/circuit" replace />;
-  const Tool = { circuit: Circuit, projectile: Projectile, pendulum: Pendulum, titration: Titration, elements: Elements, buoyancy: Buoyancy }[tool];
+  if (!tool) return <Navigate to="/lab/science/circuit-builder" replace />;
+  const Tool = { 'circuit-builder': CircuitBuilder, 'flame-test': FlameTest, 'gas-tests': GasTests, 'reaction-rates': ReactionRates, indicators: Indicators, 'hookes-law': HookesLaw, circuit: Circuit, projectile: Projectile, pendulum: Pendulum, titration: Titration, elements: Elements, buoyancy: Buoyancy }[tool];
   if (!Tool) return <Navigate to="/lab/science/circuit" replace />;
   return (
-    <LabToolShell lab="science" tool={tool} title="Science Lab" description="Virtual experiments you can run as many times as you like.">
+    <LabToolShell lab="science" tool={tool} title="Science Lab" description="Choose your apparatus, run the experiment yourself, record results and draw conclusions — as many times as you like.">
       <Tool />
     </LabToolShell>
   );

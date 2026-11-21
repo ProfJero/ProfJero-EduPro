@@ -5,13 +5,14 @@ import { Alert, Button, Card, CardBody, Field, Input, Select, Textarea } from '@
 import { cn } from '@/lib/utils';
 import { LabToolShell, Readout, Slider } from '../LabToolShell';
 import { compile, gcd, variablesIn } from './expr';
+import { Sequences, Transformations, UnitCircle } from './MathExtra';
 
 const r = (n: number, d = 4) => (Number.isFinite(n) ? String(+n.toFixed(d)) : '—');
 
 export function MathLab() {
   const { tool } = useParams();
   if (!tool) return <Navigate to="/lab/math/grapher" replace />;
-  const Tool = { grapher: Grapher, solver: Solver, statistics: Statistics, triangle: Triangle, fractions: Fractions, probability: Probability }[tool];
+  const Tool = { transformations: Transformations, 'unit-circle': UnitCircle, sequences: Sequences, grapher: Grapher, solver: Solver, statistics: Statistics, triangle: Triangle, fractions: Fractions, probability: Probability }[tool];
   if (!Tool) return <Navigate to="/lab/math/grapher" replace />;
   return (
     <LabToolShell lab="math" tool={tool} title="Math Lab" description="Explore, visualise and check your mathematics.">
