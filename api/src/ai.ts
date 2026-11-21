@@ -2,17 +2,26 @@
  * EduIntelligence: AI Companion (tutor chat, streamed) and Teacher Resource
  * Studio (structured generation). Grounded in approved curriculum items and
  * the learner's lesson; usage is metered by public.ai_consume (as the user).
+ *
+ * Provider: Google Gemini via its OpenAI-compatible endpoint.
  */
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import type { Env } from './env';
 import { HttpError, UUID, body, json, rest, rpc, type User } from './util';
 
-const MODEL = 'claude-opus-5-5';
+const MODEL = 'gemini-2.5-flash';
+const DEFAULT_BASE = 'https://generativelanguage.googleapis.com/v1beta/openai/';
+
 type Item = { id: string; code: string | null; title: string; kind: string; description: string | null; grade_level: string | null; framework: string; path: string | null };
 type Allowance = { allowed: boolean; reason?: string; remaining: number | null; limit: number | null; is_teacher?: boolean };
 
-export const aiReady = (env: Env) => Boolean(env.ANTHROPIC_API_KEY && env.SUPABASE_URL);
-const client = (env: Env) => new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
+export const aiReady = (env: Env) => Boolean(env.GEMINI_API_KEY && env.SUPABASE_URL);
+
+const client = (env: Env) =>
+  new OpenAI({
+    apiKey: env.GEMINI_API_KEY!,
+    baseURL: env.GEMINI_BASE_URL || DEFAULT_BASE,
+  });
 
 async function consume(env: Env, user: User) {
   const r = await rpc<Allowance>(env, user.token, 'ai_consume', { p_tokens: 0 });
@@ -29,6 +38,13 @@ async function curriculum(env: Env, user: User, query: string, subject?: string,
 function curriculumBlock(items: Item[]) {
   if (!items.length) return 'No approved curriculum items matched this request. Teach from sound, widely accepted knowledge appropriate for the level, and do not invent curriculum codes.';
   return items.map((i) => `- [${i.framework}] ${i.kind}${i.code ? ` ${i.code}` : ''}: ${i.title}${i.path ? ` (under ${i.path})` : ''}${i.grade_level ? ` — ${i.grade_level}` : ''}${i.description ? `\n  ${i.description.slice(0, 400)}` : ''}`).join('\n');
+}
+
+/** Strip markdown code fences that Gemini sometimes wraps around JSON. */
+function unfence(s: string): string {
+  const t = s.trim();
+  const m = t.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  return m ? m[1].trim() : t;
 }
 
 const TUTOR_SYSTEM = `You are the ProfJero Edu AI Companion, a warm, patient study partner for learners in Ghana (Basic 7 to tertiary) on the ProfJero Edu learning platform.
@@ -95,8 +111,9 @@ export async function chat(req: Request, env: Env, user: User) {
   await rest(env, user.token, 'ai_messages', { method: 'POST', body: JSON.stringify({ conversation_id: convId, role: 'user', content: message }) });
 
   const citations = items.slice(0, 6).map((i) => ({ code: i.code, title: i.title, kind: i.kind, framework: i.framework }));
-  const messages: Anthropic.Beta.BetaMessageParam[] = [
-    ...history.map((m) => ({ role: m.role, content: m.content })),
+  const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+    { role: 'system', content: TUTOR_SYSTEM },
+    ...history.map((m) => ({ role: m.role, content: m.content } as OpenAI.Chat.Completions.ChatCompletionMessageParam)),
     { role: 'user', content: `<context>\n${context}\n</context>\n\n${message}` },
   ];
 
@@ -107,31 +124,31 @@ export async function chat(req: Request, env: Env, user: User) {
 
   const run = async () => {
     let text = '';
+    let tokensIn = 0;
+    let tokensOut = 0;
     try {
       await send({ type: 'meta', conversation_id: convId, remaining: allowance.remaining, citations });
-      const stream = client(env).beta.messages.stream({
+      const stream = await client(env).chat.completions.create({
         model: MODEL,
         max_tokens: 8000,
-        betas: ['server-side-fallback-2026-07-01'],
-        fallbacks: 'default',
-        output_config: { effort: 'medium' },
-        system: [{ type: 'text', text: TUTOR_SYSTEM, cache_control: { type: 'ephemeral' } }],
         messages,
+        stream: true,
       });
-      for await (const ev of stream) {
-        if (ev.type === 'content_block_delta' && ev.delta.type === 'text_delta') { text += ev.delta.text; await send({ type: 'delta', text: ev.delta.text }); }
+      for await (const chunk of stream) {
+        const delta = chunk.choices?.[0]?.delta?.content;
+        if (delta) { text += delta; await send({ type: 'delta', text: delta }); }
+        if (chunk.usage) { tokensIn = chunk.usage.prompt_tokens ?? tokensIn; tokensOut = chunk.usage.completion_tokens ?? tokensOut; }
       }
-      const final = await stream.finalMessage();
-      if (final.stop_reason === 'refusal' && !text) {
+      if (!text) {
         text = 'I can’t help with that request. Let’s get back to your studies — what topic are you working on?';
         await send({ type: 'delta', text });
       }
-      await rest(env, user.token, 'ai_messages', { method: 'POST', body: JSON.stringify({ conversation_id: convId, role: 'assistant', content: text.slice(0, 40000) || '…', citations, tokens_in: final.usage.input_tokens, tokens_out: final.usage.output_tokens }) });
+      await rest(env, user.token, 'ai_messages', { method: 'POST', body: JSON.stringify({ conversation_id: convId, role: 'assistant', content: text.slice(0, 40000) || '…', citations, tokens_in: tokensIn, tokens_out: tokensOut }) });
       await rest(env, user.token, `ai_conversations?id=eq.${convId}`, { method: 'PATCH', body: JSON.stringify({ updated_at: new Date().toISOString() }) });
       await send({ type: 'done' });
     } catch (e) {
       console.error('ai chat', e);
-      const status = e instanceof Anthropic.APIError ? e.status : 0;
+      const status = e instanceof OpenAI.APIError ? e.status : 0;
       await send({ type: 'error', message: status === 429 || status === 529 ? 'The AI Companion is very busy. Please try again in a minute.' : 'The AI Companion had a problem answering. Please try again.' });
     } finally {
       await writer.close();
@@ -156,27 +173,32 @@ const TASK_BRIEF: Record<string, (f: StudioIn) => string> = {
   worksheet: () => 'Write a printable learner worksheet: title, instructions, Section A (short objective questions), Section B (structured questions), Section C (an activity or real-life problem), then an answer key for the teacher at the end under its own heading.',
 };
 
-const STUDIO_SCHEMA = {
-  type: 'object',
-  additionalProperties: false,
-  required: ['title', 'markdown', 'questions'],
-  properties: {
-    title: { type: 'string' },
-    markdown: { type: 'string' },
-    questions: {
-      type: 'array',
-      items: {
-        type: 'object', additionalProperties: false,
-        required: ['type', 'prompt', 'options', 'answer', 'explanation', 'marks', 'difficulty'],
-        properties: {
-          type: { type: 'string', enum: ['mcq', 'true_false', 'short_answer', 'essay'] },
-          prompt: { type: 'string' }, options: { type: 'array', items: { type: 'string' } }, answer: { type: 'string' },
-          explanation: { type: 'string' }, marks: { type: 'integer' }, difficulty: { type: 'string', enum: ['easy', 'medium', 'hard'] },
-        },
-      },
-    },
-  },
-} as const;
+/**
+ * The schema is described in prose for the model (Gemini's OpenAI-compat JSON
+ * mode takes response_format:{type:'json_object'} without a full schema), and
+ * the same shape is enforced by parse+validate below.
+ */
+const STUDIO_JSON_SPEC = `Return a single JSON object (no markdown fences) with these keys:
+- "title": string
+- "markdown": string (the full document)
+- "questions": array of objects, each with:
+    "type": one of "mcq" | "true_false" | "short_answer" | "essay",
+    "prompt": string,
+    "options": array of strings (empty array unless type is mcq),
+    "answer": string,
+    "explanation": string,
+    "marks": integer,
+    "difficulty": one of "easy" | "medium" | "hard".
+When the task is not "questions", return an empty array for "questions" and put the whole document in "markdown".`;
+
+type StudioOut = { title: string; markdown: string; questions: unknown[] };
+
+function validateStudio(o: unknown): StudioOut | null {
+  if (!o || typeof o !== 'object') return null;
+  const r = o as Record<string, unknown>;
+  if (typeof r.title !== 'string' || typeof r.markdown !== 'string' || !Array.isArray(r.questions)) return null;
+  return { title: r.title, markdown: r.markdown, questions: r.questions };
+}
 
 /** POST /api/ai/studio — returns { title, markdown, questions, citations } */
 export async function studio(req: Request, env: Env, user: User) {
@@ -202,24 +224,27 @@ export async function studio(req: Request, env: Env, user: User) {
     lc ? `Base the content on this lesson written by the teacher ("${lc.lesson_title}"):\n${(lc.text ?? lc.summary ?? '').slice(0, 15000)}` : '',
     f.extra ? `Teacher's notes: ${clip(f.extra, 1000)}` : '',
     `Task: ${brief(f)}`,
-    f.task === 'questions' ? 'Return the questions in the questions array.' : 'Put the whole document in markdown and return an empty questions array.',
-    'Give the resource a short, specific title. Where the curriculum references are missing, write "—" rather than inventing codes.',
+    STUDIO_JSON_SPEC,
+    'Where the curriculum references are missing, write "—" rather than inventing codes.',
   ].filter(Boolean).join('\n\n');
 
-  const stream = client(env).beta.messages.stream({
+  const completion = await client(env).chat.completions.create({
     model: MODEL,
-    max_tokens: 32000,
-    betas: ['server-side-fallback-2026-07-01'],
-    fallbacks: 'default',
-    output_config: { effort: 'medium', format: { type: 'json_schema', schema: STUDIO_SCHEMA as unknown as Record<string, unknown> } },
-    system: 'You are an experienced Ghanaian teacher-trainer who writes high-quality, curriculum-aligned teaching resources for the GES/NaCCA Standards-Based Curriculum and the Common Core Programme. Write in clear British English with Ghanaian context and examples. Be accurate; never invent official curriculum codes.',
-    messages: [{ role: 'user', content: prompt }],
+    max_tokens: 16000,
+    response_format: { type: 'json_object' },
+    messages: [
+      { role: 'system', content: 'You are an experienced Ghanaian teacher-trainer who writes high-quality, curriculum-aligned teaching resources for the GES/NaCCA Standards-Based Curriculum and the Common Core Programme. Write in clear British English with Ghanaian context and examples. Be accurate; never invent official curriculum codes.' },
+      { role: 'user', content: prompt },
+    ],
   });
-  const final = await stream.finalMessage();
-  if (final.stop_reason === 'refusal') return json({ error: 'This request could not be completed. Try rephrasing the topic.' }, 422);
-  if (final.stop_reason === 'max_tokens') return json({ error: 'The resource was too long to finish. Try a shorter duration or fewer questions.' }, 422);
-  const textBlock = final.content.find((c) => c.type === 'text');
-  let out: { title: string; markdown: string; questions: unknown[] };
-  try { out = JSON.parse(textBlock && textBlock.type === 'text' ? textBlock.text : ''); } catch { return json({ error: 'The draft came back in an unexpected format. Please try again.' }, 502); }
+
+  const choice = completion.choices?.[0];
+  if (!choice) return json({ error: 'The draft came back empty. Please try again.' }, 502);
+  if (choice.finish_reason === 'length') return json({ error: 'The resource was too long to finish. Try a shorter duration or fewer questions.' }, 422);
+  const raw = choice.message?.content ?? '';
+  let out: StudioOut | null;
+  try { out = validateStudio(JSON.parse(unfence(raw))); } catch { out = null; }
+  if (!out) return json({ error: 'The draft came back in an unexpected format. Please try again.' }, 502);
+
   return json({ ...out, citations: items.slice(0, 8).map((i) => ({ code: i.code, title: i.title, kind: i.kind, framework: i.framework })), remaining: allowance.remaining });
 }

@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
-  ArrowRight, Award, BarChart3, BookOpenCheck, Building2, CalendarClock, CheckCircle2, ClipboardCheck, Crown, Hand, MessagesSquare,
-  PenLine, Presentation, Sparkles, Users, Video, WifiOff, Quote,
+  ArrowRight, Award, BarChart3, BookOpenCheck, Building2, CalendarClock, CheckCircle2, ClipboardCheck, Crown, FlaskConical, Gamepad2,
+  Hand, MessagesSquare, PenLine, Presentation, Sparkles, Users, Video, WifiOff, Quote,
 } from 'lucide-react';
 import { ButtonLink, Badge, Avatar } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
@@ -16,6 +16,7 @@ export function Home() {
     <>
       <Hero />
       <HowItWorks />
+      <ProductFamilies />
       <Categories />
       <FeaturedCourses />
       <Classroom />
@@ -124,11 +125,86 @@ function HowItWorks() {
   );
 }
 
+/** The five product families inside ProfJero Edu. */
+function ProductFamilies() {
+  const families = [
+    {
+      icon: BookOpenCheck,
+      name: 'Courses & Certificates',
+      text: 'Structured lessons, timed assessments, assignments with feedback, and certificates anyone can verify. The foundation everything else builds on.',
+      to: '/courses',
+      cta: 'Explore courses',
+      color: 'bg-brand-600',
+    },
+    {
+      icon: FlaskConical,
+      name: 'EduLab',
+      text: 'Hands-on practice in the browser. Code Lab runs Python, JavaScript, SQL and full web pages without installing anything. Science Lab and Math Lab let you play with circuits, projectiles, titration, graphs and probability — then place those labs right inside a lesson.',
+      to: '/lab',
+      cta: 'Try the labs',
+      color: 'bg-growth-600',
+    },
+    {
+      icon: MessagesSquare,
+      name: 'EduConnect',
+      text: 'Teachers create a class in seconds and share a code. Learners join, ask for help, form study groups, vote in polls, and step up as class leaders. It feels like a real classroom, not a message board.',
+      to: '/classes',
+      cta: 'See how classes work',
+      color: 'bg-sun-500',
+    },
+    {
+      icon: Sparkles,
+      name: 'EduIntelligence',
+      text: 'An AI Companion grounded in the approved GES/NaCCA curriculum. Ask it to explain, guide you through a problem, quiz you, or summarise a lesson. Teachers get a Resource Studio that drafts lesson plans, notes and question banks in the GES style.',
+      to: '/ai',
+      cta: 'Meet your AI Companion',
+      color: 'bg-brand-500',
+    },
+    {
+      icon: Gamepad2,
+      name: 'Challenge Arena',
+      text: 'Optional learning games with levels, XP, streaks and badges. Compete on the leaderboard or opt out and play at your own pace. Learning that feels like play, without the pressure.',
+      to: '/arena',
+      cta: 'Enter the arena',
+      color: 'bg-ink-700',
+    },
+  ];
+  return (
+    <section className="bg-ink-50 py-16 sm:py-20">
+      <div className="container-page">
+        <SectionTitle eyebrow="Inside ProfJero Edu" title="One platform. Five ways to learn." />
+        <p className="mx-auto mt-4 max-w-2xl text-center text-ink-600">
+          ProfJero Edu is more than a course catalogue. It&apos;s a learning ecosystem — courses and certificates, hands-on labs,
+          your own classroom, a study companion that knows the Ghanaian curriculum, and a bit of friendly competition.
+          All inside one account.
+        </p>
+        <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {families.map((f) => (
+            <div key={f.name} className="card flex flex-col p-6">
+              <span className={`flex h-12 w-12 items-center justify-center rounded-2xl text-white ${f.color}`}>
+                <f.icon className="h-6 w-6" />
+              </span>
+              <h3 className="mt-5 text-lg font-extrabold">{f.name}</h3>
+              <p className="mt-2 flex-1 text-sm leading-relaxed text-ink-600">{f.text}</p>
+              <Link to={f.to} className="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-brand-700 hover:text-brand-800">
+                {f.cta} <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+          ))}
+        </div>
+        <p className="mx-auto mt-10 max-w-2xl text-center text-sm text-ink-500">
+          Free to start. Upgrade when you need more — more courses, more sessions, more AI, more space for your school.
+        </p>
+      </div>
+    </section>
+  );
+}
+
 function Categories() {
   const { data } = useCategories();
   if (!data?.length) return null;
   return (
-    <section className="bg-ink-50 py-16 sm:py-20">
+    <section className="py-16 sm:py-20">
       <div className="container-page">
         <SectionTitle eyebrow="Learning areas" title="Explore subjects that matter" />
         <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
@@ -155,7 +231,7 @@ function FeaturedCourses() {
   });
   const { data: inst } = useInstructorCards((data ?? []).map((c) => c.id));
   return (
-    <section className="py-16 sm:py-20">
+    <section className="bg-ink-50 py-16 sm:py-20">
       <div className="container-page">
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <SectionTitle eyebrow="Featured courses" title="Start learning today" align="left" />
@@ -235,35 +311,67 @@ function Audiences() {
   );
 }
 
+/** Updated with the actual Edu/EduPro plan matrix (learner, teacher and school). */
 function EduPro() {
   return (
     <section className="bg-ink-50 py-16 sm:py-20">
-      <div className="container-page grid items-center gap-10 lg:grid-cols-2">
-        <div>
-          <SectionTitle eyebrow="Edu & EduPro" title="Free for everyone. Pro when you are ready." align="left" />
-          <p className="mt-4 text-ink-600">
-            <strong>ProfJero Edu</strong> is free and genuinely useful: courses, live classes, assessments, assignments, offline lessons and certificates.
-            <strong> ProfJero EduPro</strong> is the premium offering inside the same platform — premium courses, unlimited teaching tools,
-            advanced analytics and priority support for individuals, teachers and whole schools.
-          </p>
-          <ButtonLink to="/pricing" className="mt-6" variant="secondary">Compare Edu and EduPro <ArrowRight className="h-4 w-4" /></ButtonLink>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2">
+      <div className="container-page">
+        <SectionTitle eyebrow="Edu & EduPro" title="Free for everyone. Pro when you are ready." />
+        <p className="mx-auto mt-4 max-w-2xl text-center text-ink-600">
+          <strong>ProfJero Edu</strong> is free and genuinely useful: courses, live classes, assessments, assignments, offline lessons and certificates.
+          <strong> ProfJero EduPro</strong> is the premium offering inside the same platform — premium courses, unlimited teaching tools,
+          advanced analytics and priority support for individuals, teachers and whole schools.
+        </p>
+
+        <div className="mt-12 grid gap-5 lg:grid-cols-3">
+          {/* Learners */}
           <div className="card p-6">
-            <Badge tone="brand">ProfJero Edu</Badge>
-            <p className="mt-3 text-2xl font-extrabold">Free</p>
-            <ul className="mt-4 space-y-2 text-sm text-ink-600">
-              {['Courses & live classes', 'Quizzes, assignments & feedback', 'Offline lessons', 'Verifiable certificates'].map((x) => <li key={x} className="flex gap-2"><CheckCircle2 className="h-4 w-4 text-growth-600" />{x}</li>)}
-            </ul>
+            <Badge tone="brand">For learners</Badge>
+            <div className="mt-4 space-y-1.5 text-sm text-ink-600">
+              <p className="flex justify-between"><span>Active self-enrolled courses</span><span className="font-semibold text-ink-800">10 · unlimited</span></p>
+              <p className="flex justify-between"><span>Own classes</span><span className="font-semibold text-ink-800">10 · unlimited</span></p>
+              <p className="flex justify-between"><span>AI Companion requests / day</span><span className="font-semibold text-ink-800">15 · 150</span></p>
+              <p className="flex justify-between"><span>EduPro courses</span><span className="font-semibold text-ink-800">— · ✓</span></p>
+              <p className="flex justify-between"><span>Verified certificates</span><span className="font-semibold text-ink-800">✓ · ✓</span></p>
+              <p className="flex justify-between"><span>Offline learning</span><span className="font-semibold text-ink-800">✓ · ✓</span></p>
+              <p className="flex justify-between"><span>Priority support</span><span className="font-semibold text-ink-800">✓ · ✓</span></p>
+            </div>
+            <p className="mt-4 text-xs text-ink-500">Left column: Edu (free). Right column: EduPro.</p>
           </div>
+
+          {/* Teachers */}
+          <div className="card p-6">
+            <Badge tone="green">For teachers</Badge>
+            <div className="mt-4 space-y-1.5 text-sm text-ink-600">
+              <p className="flex justify-between"><span>Independent courses</span><span className="font-semibold text-ink-800">5 · unlimited</span></p>
+              <p className="flex justify-between"><span>Live sessions / month</span><span className="font-semibold text-ink-800">30 · unlimited</span></p>
+              <p className="flex justify-between"><span>Own classes</span><span className="font-semibold text-ink-800">10 · unlimited</span></p>
+              <p className="flex justify-between"><span>AI Companion requests / day</span><span className="font-semibold text-ink-800">40 · 300</span></p>
+              <p className="flex justify-between"><span>Advanced analytics</span><span className="font-semibold text-ink-800">✓ · ✓</span></p>
+              <p className="flex justify-between"><span>EduPro courses</span><span className="font-semibold text-ink-800">✓ · ✓</span></p>
+              <p className="flex justify-between"><span>Priority support</span><span className="font-semibold text-ink-800">✓ · ✓</span></p>
+            </div>
+            <p className="mt-4 text-xs text-ink-500">Left column: Edu (free). Right column: EduPro.</p>
+          </div>
+
+          {/* Schools */}
           <div className="card border-sun-400/60 p-6 ring-1 ring-sun-400/40">
-            <Badge tone="amber" icon={<Crown className="h-3 w-3" />}>ProfJero EduPro</Badge>
-            <p className="mt-3 text-2xl font-extrabold">Premium</p>
-            <ul className="mt-4 space-y-2 text-sm text-ink-600">
-              {['Premium courses', 'Unlimited teaching tools', 'Advanced analytics', 'Priority support'].map((x) => <li key={x} className="flex gap-2"><Crown className="h-4 w-4 text-sun-500" />{x}</li>)}
-            </ul>
-            <p className="mt-4 text-xs text-ink-500">Currently available through pilots. Pricing will be announced.</p>
+            <Badge tone="amber" icon={<Crown className="h-3 w-3" />}>For schools</Badge>
+            <div className="mt-4 space-y-1.5 text-sm text-ink-600">
+              <p className="flex justify-between"><span>School students</span><span className="font-semibold text-ink-800">500 · unlimited</span></p>
+              <p className="flex justify-between"><span>Active self-enrolled courses</span><span className="font-semibold text-ink-800">✓ · unlimited</span></p>
+              <p className="flex justify-between"><span>AI Companion requests / day</span><span className="font-semibold text-ink-800">20 · 150</span></p>
+              <p className="flex justify-between"><span>EduPro courses</span><span className="font-semibold text-ink-800">— · ✓</span></p>
+              <p className="flex justify-between"><span>Advanced reporting</span><span className="font-semibold text-ink-800">✓ · ✓</span></p>
+              <p className="flex justify-between"><span>Priority support</span><span className="font-semibold text-ink-800">✓ · ✓</span></p>
+            </div>
+            <p className="mt-4 text-xs text-ink-500">Left column: Edu (free). Right column: EduPro.</p>
           </div>
+        </div>
+
+        <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <ButtonLink to="/pricing" variant="secondary">Compare Edu and EduPro <ArrowRight className="h-4 w-4" /></ButtonLink>
+          <p className="text-xs text-ink-500">Currently available through pilots. Public pricing will be announced.</p>
         </div>
       </div>
     </section>

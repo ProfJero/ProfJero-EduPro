@@ -4,7 +4,8 @@ export interface Env {
   APP_URL?: string; // e.g. https://profjero-edupro.pages.dev
   ALLOWED_ORIGINS?: string; // comma separated
   WORKER_SECRET?: string; // shared with private.app_config in the database
-  ANTHROPIC_API_KEY?: string;
+  GEMINI_API_KEY?: string;
+  GEMINI_BASE_URL?: string; // optional override; defaults to Google's OpenAI-compatible endpoint
   VAPID_PUBLIC_KEY?: string; // base64url, uncompressed P-256 point
   VAPID_PRIVATE_KEY?: string; // JWK JSON
   VAPID_SUBJECT?: string;
