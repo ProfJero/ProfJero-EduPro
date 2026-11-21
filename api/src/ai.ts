@@ -133,7 +133,6 @@ export async function chat(req: Request, env: Env, user: User) {
         max_tokens: 8000,
         messages,
         stream: true,
-        stream_options: { include_usage: true },
       });
       for await (const chunk of stream) {
         const delta = chunk.choices?.[0]?.delta?.content;
