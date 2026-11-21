@@ -8,7 +8,8 @@ import {
 } from '@/components/ui';
 import { supabase, unwrap } from '@/lib/supabase';
 import { fromNow } from '@/lib/dates';
-import { downloadCsv, errorMessage, pct } from '@/lib/utils';
+import { cn, downloadCsv, errorMessage, pct } from '@/lib/utils';
+import { useTeachingClasses } from '@/features/teachers/queries';
 import { useAuth } from '@/features/authentication/AuthProvider';
 import { ClassroomPanel } from '@/features/classroom/ClassroomPanel';
 import { AnnouncementComposer, AnnouncementList } from '@/features/notifications/Announcements';
@@ -41,6 +42,7 @@ export function CourseEditor() {
           <PreviewAsStudent courseId={course.id} />
         </>} />
       <PublishBar course={course} />
+      {(course.visibility === 'class' || course.visibility === 'private') && <CourseClasses courseId={course.id} />}
       <Tabs value={tab} onValueChange={(v) => setParams({ tab: v }, { replace: true })} tabs={[
         { value: 'curriculum', label: 'Curriculum', content: <Curriculum courseId={course.id} /> },
         { value: 'details', label: 'Details', content: (
@@ -69,13 +71,15 @@ function PreviewAsStudent({ courseId }: { courseId: string }) {
   return <ButtonLink to={`/learn/courses/${courseId}/lessons/${first.id}`} variant="secondary" leftIcon={<Eye className="h-4 w-4" />}>Preview as student</ButtonLink>;
 }
 
-function PublishBar({ course }: { course: { id: string; status: string; school_id: string | null; review_notes: string | null; title: string } }) {
+function PublishBar({ course }: { course: { id: string; status: string; school_id: string | null; review_notes: string | null; title: string; visibility: string } }) {
   const { context, isAdmin } = useAuth();
   const qc = useQueryClient();
   const toast = useToast();
   const [busy, setBusy] = useState<string | null>(null);
   const isSchoolAdmin = Boolean(course.school_id && context?.schools.some((s) => s.school_id === course.school_id && s.roles?.includes('school_admin')));
+  const classCourse = course.visibility === 'class' || course.visibility === 'private';
   const canPublish = isAdmin || isSchoolAdmin;
+  const canDirect = canPublish || classCourse;
   const act = async (key: string, fn: () => PromiseLike<{ error: { message: string } | null }>, ok: string) => {
     setBusy(key);
     const { error } = await fn();
@@ -88,16 +92,18 @@ function PublishBar({ course }: { course: { id: string; status: string; school_i
         <div className="min-w-0 flex-1 text-sm">
           {course.status === 'draft' && <p><strong>Draft.</strong> Only you and your co-teachers can see this course.</p>}
           {course.status === 'in_review' && <p><strong>In review.</strong> {canPublish ? 'Review the content and publish when ready.' : 'The ProfJero team is reviewing your course.'}</p>}
-          {course.status === 'published' && <p className="text-growth-700"><CheckCircle2 className="mr-1 inline h-4 w-4" /><strong>Published.</strong> Learners can find and study this course.</p>}
+          {course.status === 'published' && <p className="text-growth-700"><CheckCircle2 className="mr-1 inline h-4 w-4" /><strong>Published.</strong> {course.visibility === 'class' ? 'Members of the classes it is assigned to can study it. Nobody else can open it.' : 'Learners can find and study this course.'}</p>}
+          {course.status === 'draft' && course.visibility === 'class' && <p className="text-ink-500">Class-only course — publish it whenever it’s ready; no review needed.</p>}
           {course.status === 'unpublished' && <p><strong>Unpublished.</strong> Enrolled learners keep access; it's hidden from the catalogue.</p>}
           {course.status === 'archived' && <p><strong>Archived.</strong></p>}
           {course.review_notes && <p className="mt-1 text-sun-700"><AlertTriangle className="mr-1 inline h-4 w-4" />Reviewer notes: {course.review_notes}</p>}
         </div>
-        {(course.status === 'draft' || course.status === 'unpublished') && !canPublish && <Button size="sm" loading={busy === 'submit'} leftIcon={<Send className="h-4 w-4" />} onClick={() => act('submit', () => supabase.rpc('submit_course_for_review', { p_course: course.id }), 'Submitted for review')}>Submit for review</Button>}
+        {(course.status === 'draft' || course.status === 'unpublished') && !canPublish && classCourse && <Button size="sm" variant="success" loading={busy === 'publish'} onClick={() => act('publish', () => supabase.from('courses').update({ status: 'published' }).eq('id', course.id), 'Published to your class')}>Publish to class</Button>}
+        {(course.status === 'draft' || course.status === 'unpublished') && !canPublish && !classCourse && <Button size="sm" loading={busy === 'submit'} leftIcon={<Send className="h-4 w-4" />} onClick={() => act('submit', () => supabase.rpc('submit_course_for_review', { p_course: course.id }), 'Submitted for review')}>Submit for review</Button>}
         {canPublish && course.status !== 'published' && course.status !== 'archived' && <Button size="sm" variant="success" loading={busy === 'publish'} onClick={() => act('publish', () => supabase.rpc('review_course', { p_course: course.id, p_action: 'publish' }), 'Course published')}>Publish</Button>}
         {canPublish && course.status === 'in_review' && <Button size="sm" variant="outline" loading={busy === 'reject'} onClick={() => act('reject', () => supabase.rpc('review_course', { p_course: course.id, p_action: 'reject', p_notes: 'Changes requested' }), 'Returned to draft')}>Request changes</Button>}
         {course.status === 'published' && canPublish && <Button size="sm" variant="outline" loading={busy === 'unpub'} onClick={() => act('unpub', () => supabase.rpc('review_course', { p_course: course.id, p_action: 'unpublish' }), 'Course unpublished')}>Unpublish</Button>}
-        {course.status === 'published' && !canPublish && <Button size="sm" variant="outline" loading={busy === 'unpub'} onClick={() => act('unpub', () => supabase.from('courses').update({ status: 'unpublished' }).eq('id', course.id), 'Course unpublished')}>Unpublish</Button>}
+        {course.status === 'published' && !canPublish && canDirect && <Button size="sm" variant="outline" loading={busy === 'unpub'} onClick={() => act('unpub', () => supabase.from('courses').update({ status: 'unpublished' }).eq('id', course.id), 'Course unpublished')}>Unpublish</Button>}
         {course.status !== 'archived' && <Button size="sm" variant="ghost" leftIcon={<Archive className="h-4 w-4" />} loading={busy === 'arch'} onClick={() => act('arch', () => supabase.from('courses').update({ status: 'archived' }).eq('id', course.id), 'Course archived')}>Archive</Button>}
       </CardBody>
     </Card>
@@ -309,5 +315,37 @@ function CourseTeam({ courseId }: { courseId: string }) {
         </CardBody>
       </Card>
     </div>
+  );
+}
+
+/** Which of my classes can study this course. */
+function CourseClasses({ courseId }: { courseId: string }) {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const toast = useToast();
+  const mine = useTeachingClasses();
+  const linked = useQuery({ queryKey: ['course-classes', courseId], queryFn: async () => unwrap(await supabase.from('class_courses').select('class_id').eq('course_id', courseId)) });
+  const ids = new Set((linked.data ?? []).map((r) => r.class_id));
+  const toggle = async (classId: string, on: boolean) => {
+    const { error } = on
+      ? await supabase.from('class_courses').insert({ class_id: classId, course_id: courseId, assigned_by: user!.id })
+      : await supabase.from('class_courses').delete().eq('class_id', classId).eq('course_id', courseId);
+    if (error) toast.error('Could not update', error.message);
+    else { toast.success(on ? 'Added to class — members were enrolled' : 'Removed from class'); void qc.invalidateQueries({ queryKey: ['course-classes', courseId] }); }
+  };
+  return (
+    <Card><CardBody>
+      <p className="text-sm font-bold text-ink-800">Classes that can study this course</p>
+      <p className="text-xs text-ink-500">Members are enrolled automatically, including anyone who joins later. People who leave the class lose access.</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {(mine.data ?? []).map((c) => (
+          <button key={c.id} onClick={() => void toggle(c.id, !ids.has(c.id))} aria-pressed={ids.has(c.id)}
+            className={cn('rounded-full border px-3 py-1.5 text-sm font-semibold transition', ids.has(c.id) ? 'border-growth-500 bg-growth-50 text-growth-700' : 'border-ink-200 text-ink-600 hover:border-brand-300')}>
+            {ids.has(c.id) ? '✓ ' : '+ '}{c.name}
+          </button>
+        ))}
+        {!mine.data?.length && <p className="text-sm text-ink-500">You have no classes yet. <Link to="/teach/classes?new=1" className="font-semibold text-brand-700">Create one</Link>.</p>}
+      </div>
+    </CardBody></Card>
   );
 }

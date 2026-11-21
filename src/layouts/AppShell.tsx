@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ComponentType } from 'react';
-import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Link, NavLink, Outlet, matchPath, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Dlg from '@radix-ui/react-dialog';
 import {
@@ -14,7 +14,8 @@ import { ConnectionBanner } from '@/components/app/ConnectionBanner';
 import { useAuth } from '@/features/authentication/AuthProvider';
 import type { Workspace } from '@/features/authentication/types';
 import { usePrefs } from '@/features/preferences/PreferencesProvider';
-import { PushPrompt } from '@/features/notifications/PushPrompt';
+import { PushPill, PushProvider } from '@/features/notifications/PushPrompt';
+import { ContrastGuard } from '@/components/app/ContrastGuard';
 import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import { useOfflineSync } from '@/features/learning/useOfflineSync';
@@ -181,7 +182,7 @@ export function AppShell() {
       /* ignore */
     }
   }, [ws.key]);
-  useEffect(() => setDrawer(false), [loc.pathname]);
+  useEffect(() => { setDrawer(false); }, [loc.pathname]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
@@ -195,18 +196,19 @@ export function AppShell() {
 
   const isPro = Boolean(context?.is_edupro);
   return (
+    <PushProvider enabled={Boolean(profile && !profile.is_guest)}>
     <div className="min-h-screen bg-ink-50">
       <a href="#main" className="skip-link">Skip to content</a>
-      <aside className={cn('fixed inset-y-0 left-0 z-30 hidden border-r border-ink-200 bg-surface transition-[width] duration-200 lg:block', collapsed ? 'w-[4.75rem]' : 'w-[17.5rem]')} aria-label="Workspace navigation">
+      <aside className={cn('nav-surface fixed inset-y-0 left-0 z-30 hidden transition-[width] duration-200 lg:block', collapsed ? 'w-[4.75rem]' : 'w-[17.5rem]')} aria-label="Workspace navigation">
         <Sidebar ws={ws} groups={groups} isPro={isPro} collapsed={collapsed} onToggle={() => setPref('sidebarCollapsed', !collapsed)} onSearch={() => setPalette(true)} />
       </aside>
       <Dlg.Root open={drawer} onOpenChange={setDrawer}>
         <Dlg.Portal>
           <Dlg.Overlay className="fixed inset-0 z-50 bg-ink-950/50 lg:hidden" />
-          <Dlg.Content className="fixed inset-y-0 left-0 z-50 w-[86%] max-w-[19rem] bg-surface shadow-2xl lg:hidden" aria-label="Navigation">
+          <Dlg.Content className="nav-surface fixed inset-y-0 left-0 z-50 w-[86%] max-w-[19rem] shadow-2xl data-[state=open]:animate-[drawer-in_.28s_cubic-bezier(.2,.9,.3,1)] lg:hidden" aria-label="Navigation">
             <Dlg.Title className="sr-only">Navigation</Dlg.Title>
             <Dlg.Description className="sr-only">Workspace navigation menu</Dlg.Description>
-            <Dlg.Close className="absolute right-3 top-4 z-10 rounded-lg p-1.5 text-ink-500 hover:bg-ink-100" aria-label="Close menu"><X className="h-5 w-5" /></Dlg.Close>
+            <Dlg.Close className="absolute right-3 top-4 z-10 rounded-lg p-1.5 text-white/70 hover:bg-white/10" aria-label="Close menu"><X className="h-5 w-5" /></Dlg.Close>
             <Sidebar ws={ws} groups={groups} isPro={isPro} collapsed={false} onSearch={() => { setDrawer(false); setPalette(true); }} />
           </Dlg.Content>
         </Dlg.Portal>
@@ -216,13 +218,14 @@ export function AppShell() {
         <ConnectionBanner />
         <TopBar onMenu={() => setDrawer(true)} onSearch={() => setPalette(true)} />
         <main id="main" className="container-page pb-28 pt-6 lg:pb-12">
-          {profile && !profile.is_guest && <PushPrompt />}
-          <Outlet />
+          <div key={loc.pathname} className="motion-safe:animate-[page-in_.28s_ease-out]"><Outlet /></div>
         </main>
       </div>
       <MobileNav items={groups.flatMap((g) => g.items).filter((i) => i.mobile).slice(0, 4)} onMore={() => setDrawer(true)} />
       <CommandPalette open={palette} onOpenChange={setPalette} groups={groups} />
+      <ContrastGuard />
     </div>
+    </PushProvider>
   );
 }
 
@@ -230,31 +233,31 @@ function Sidebar({ ws, groups, isPro, collapsed, onToggle, onSearch }: { ws: Wor
   return (
     <div className="flex h-full flex-col">
       <div className={cn('flex h-16 shrink-0 items-center', collapsed ? 'justify-center px-2' : 'px-4')}>
-        {collapsed ? <Link to="/dashboard" aria-label="Home"><LogoMark className="h-10 w-10" /></Link> : <Logo to="/dashboard" pro={isPro} />}
+        {collapsed ? <Link to="/dashboard" aria-label="Home"><LogoMark className="h-10 w-10" onDark /></Link> : <Logo to="/dashboard" pro={isPro} light />}
       </div>
       <div className={cn('shrink-0 pb-2', collapsed ? 'px-2' : 'px-3')}>
         <WorkspaceSwitcher current={ws} collapsed={collapsed} />
-        <button onClick={onSearch} className={cn('mt-2 flex w-full items-center gap-2 rounded-xl border border-ink-200 text-sm text-ink-500 hover:border-ink-300 hover:text-ink-800', collapsed ? 'h-10 justify-center' : 'h-9 px-3')} aria-label="Search and jump (Ctrl K)">
+        <button onClick={onSearch} className={cn('mt-2 flex w-full items-center gap-2 rounded-xl border border-white/10 bg-white/5 text-sm text-white/60 transition hover:border-white/20 hover:text-white', collapsed ? 'h-10 justify-center' : 'h-9 px-3')} aria-label="Search and jump (Ctrl K)">
           <Search className="h-4 w-4" />
-          {!collapsed && <><span className="flex-1 text-left">Search & jump…</span><kbd className="rounded border border-ink-200 px-1.5 text-[0.65rem] font-semibold">Ctrl K</kbd></>}
+          {!collapsed && <><span className="flex-1 text-left">Search & jump…</span><kbd className="rounded border border-white/15 px-1.5 text-[0.65rem] font-semibold">Ctrl K</kbd></>}
         </button>
       </div>
       <nav className={cn('scrollbar-thin flex-1 overflow-y-auto pb-4', collapsed ? 'px-2' : 'px-3')} aria-label={`${ws.label} menu`}>
         {groups.map((g, gi) => (
           <div key={gi} className={cn(gi > 0 && 'mt-4')}>
             {g.label && (collapsed
-              ? <div className="mx-auto my-2 h-px w-8 bg-ink-200" aria-hidden />
-              : <p className="mb-1 flex items-center gap-2 px-3 text-[0.68rem] font-bold uppercase tracking-[0.12em] text-ink-400">{g.tone && <span className={cn('h-1.5 w-1.5 rounded-full', toneDot[g.tone])} />}{g.label}</p>)}
+              ? <div className="mx-auto my-2 h-px w-8 bg-white/10" aria-hidden />
+              : <p className="mb-1 flex items-center gap-2 px-3 text-[0.68rem] font-bold uppercase tracking-[0.12em] text-white/40">{g.tone && <span className={cn('h-1.5 w-1.5 rounded-full', toneDot[g.tone])} />}{g.label}</p>)}
             <ul className="space-y-0.5">
               {g.items.map((i) => (
                 <li key={i.to}>
                   <NavLink to={i.to} end={i.end} title={collapsed ? i.label : undefined}
                     className={({ isActive }) => cn('group relative flex items-center rounded-xl text-sm font-semibold transition',
                       collapsed ? 'h-10 justify-center' : 'gap-3 px-3 py-2',
-                      isActive ? 'bg-brand-50 text-brand-700' : 'text-ink-600 hover:bg-ink-100 hover:text-ink-900')}>
+                      isActive ? 'bg-white/[0.13] text-white shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08)]' : 'text-white/70 hover:bg-white/[0.07] hover:text-white')}>
                     {({ isActive }) => (<>
-                      {isActive && <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-brand-600" aria-hidden />}
-                      <i.icon className="h-[1.15rem] w-[1.15rem] shrink-0" />
+                      {isActive && <span className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-brand-400 shadow-[0_0_12px_var(--color-brand-400)]" aria-hidden />}
+                      <i.icon className={cn('h-[1.15rem] w-[1.15rem] shrink-0 transition-transform group-hover:scale-110', isActive && 'text-brand-300')} />
                       {!collapsed && <span className="truncate">{i.label}</span>}
                       {collapsed && <span className="pointer-events-none absolute left-full z-50 ml-3 whitespace-nowrap rounded-lg bg-ink-950 px-2.5 py-1.5 text-xs font-semibold text-white opacity-0 shadow-lg transition group-hover:opacity-100 group-focus-visible:opacity-100">{i.label}</span>}
                     </>)}
@@ -264,11 +267,11 @@ function Sidebar({ ws, groups, isPro, collapsed, onToggle, onSearch }: { ws: Wor
             </ul>
           </div>
         ))}
-        <div className="my-4 border-t border-ink-100" />
+        <div className="my-4 border-t border-white/10" />
         <ul className="space-y-0.5">
           {[{ to: '/notifications', label: 'Notifications', icon: Bell }, { to: '/support', label: 'Help & Support', icon: LifeBuoy }, { to: '/settings', label: 'Settings & Appearance', icon: Settings }].map((i) => (
             <li key={i.to}>
-              <NavLink to={i.to} title={collapsed ? i.label : undefined} className={({ isActive }) => cn('flex items-center rounded-xl text-sm font-medium', collapsed ? 'h-10 justify-center' : 'gap-3 px-3 py-2', isActive ? 'bg-brand-50 text-brand-700' : 'text-ink-500 hover:bg-ink-100 hover:text-ink-800')}>
+              <NavLink to={i.to} title={collapsed ? i.label : undefined} className={({ isActive }) => cn('flex items-center rounded-xl text-sm font-medium transition', collapsed ? 'h-10 justify-center' : 'gap-3 px-3 py-2', isActive ? 'bg-white/[0.13] text-white' : 'text-white/55 hover:bg-white/[0.07] hover:text-white')}>
                 <i.icon className="h-4 w-4" />{!collapsed && i.label}
               </NavLink>
             </li>
@@ -276,8 +279,8 @@ function Sidebar({ ws, groups, isPro, collapsed, onToggle, onSearch }: { ws: Wor
         </ul>
       </nav>
       {onToggle && (
-        <div className="shrink-0 border-t border-ink-100 p-2">
-          <button onClick={onToggle} className={cn('flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-ink-500 hover:bg-ink-100 hover:text-ink-800', collapsed && 'justify-center px-0')} aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} aria-expanded={!collapsed}>
+        <div className="shrink-0 border-t border-white/10 p-2">
+          <button onClick={onToggle} className={cn('flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-white/55 hover:bg-white/[0.07] hover:text-white', collapsed && 'justify-center px-0')} aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} aria-expanded={!collapsed}>
             {collapsed ? <ChevronsRight className="h-4 w-4" /> : <><ChevronsLeft className="h-4 w-4" />Collapse</>}
           </button>
         </div>
@@ -292,11 +295,11 @@ function WorkspaceSwitcher({ current, collapsed }: { current: Workspace; collaps
   const Icon = wsIcon[current.kind];
   return (
     <Menu>
-      <MenuTrigger className={cn('flex w-full items-center rounded-xl border border-ink-200 bg-ink-50 text-left hover:border-ink-300', collapsed ? 'h-10 justify-center' : 'gap-3 px-3 py-2.5')} aria-label={`Workspace: ${current.label}. Switch workspace`}>
+      <MenuTrigger className={cn('flex w-full items-center rounded-xl border border-white/10 bg-white/[0.06] text-left transition hover:border-white/20 hover:bg-white/10', collapsed ? 'h-10 justify-center' : 'gap-3 px-3 py-2.5')} aria-label={`Workspace: ${current.label}. Switch workspace`}>
         <span className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white', wsAccent[current.kind])}><Icon className="h-4 w-4" /></span>
         {!collapsed && <>
-          <span className="min-w-0 flex-1"><span className="block text-[0.65rem] font-bold uppercase tracking-wider text-ink-400">Workspace</span><span className="block truncate text-sm font-bold text-ink-900">{current.label}</span></span>
-          <ChevronsUpDown className="h-4 w-4 text-ink-400" />
+          <span className="min-w-0 flex-1"><span className="block text-[0.65rem] font-bold uppercase tracking-wider text-white/45">Workspace</span><span className="block truncate text-sm font-bold text-white">{current.label}</span></span>
+          <ChevronsUpDown className="h-4 w-4 text-white/45" />
         </>}
       </MenuTrigger>
       <MenuContent align="start" className="w-64">
@@ -336,6 +339,7 @@ function TopBar({ onMenu, onSearch }: { onMenu: () => void; onSearch: () => void
         <button onClick={() => setPref('theme', isDark ? 'light' : 'dark')} className="rounded-full p-2 text-ink-600 hover:bg-ink-100" aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}>
           {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
         </button>
+        <PushPill />
         <NotificationBell />
         <Menu>
           <MenuTrigger className="flex items-center gap-2 rounded-full p-0.5 hover:bg-ink-100" aria-label="Account menu">
@@ -390,15 +394,23 @@ function NotificationBell() {
 }
 
 function MobileNav({ items, onMore }: { items: NavItem[]; onMore: () => void }) {
+  const loc = useLocation();
+  const active = items.findIndex((i) => matchPath({ path: i.to, end: Boolean(i.end) }, loc.pathname));
+  const n = items.length + 1;
   return (
-    <nav aria-label="Quick navigation" className="fixed inset-x-0 bottom-0 z-30 border-t border-ink-200 bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
-      <div className="grid grid-cols-5">
-        {items.map((i) => (
-          <NavLink key={i.to} to={i.to} end={i.end} className={({ isActive }) => cn('flex flex-col items-center gap-0.5 py-2 text-[0.68rem] font-semibold', isActive ? 'text-brand-700' : 'text-ink-500')}>
-            <i.icon className="h-5 w-5" /><span className="truncate px-1">{i.label}</span>
+    <nav aria-label="Quick navigation" className="fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-30 lg:hidden">
+      <div className="relative grid rounded-[1.4rem] border border-ink-200/70 bg-surface/90 p-1.5 shadow-[0_12px_32px_-10px_rgb(7_20_51/0.45)] backdrop-blur-xl" style={{ gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))` }}>
+        {active >= 0 && (
+          <span aria-hidden className="absolute inset-y-1.5 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-deep shadow-[0_6px_16px_-6px_var(--color-brand-500)] transition-[left] duration-300 ease-[cubic-bezier(.2,.9,.3,1.25)]"
+            style={{ left: `calc(0.375rem + ${active} * ((100% - 0.75rem) / ${n}))`, width: `calc((100% - 0.75rem) / ${n})` }} />
+        )}
+        {items.map((i, k) => (
+          <NavLink key={i.to} to={i.to} end={i.end} className="relative z-10 flex flex-col items-center gap-0.5 rounded-2xl py-1.5 text-[0.66rem] font-bold transition active:scale-90">
+            <i.icon className={cn('h-5 w-5 transition-all duration-300', k === active ? '-translate-y-0.5 scale-110 text-white' : 'text-ink-500')} />
+            <span className={cn('max-w-full truncate px-1 transition-colors', k === active ? 'text-white' : 'text-ink-500')}>{i.label.replace('My ', '')}</span>
           </NavLink>
         ))}
-        <button onClick={onMore} className="flex flex-col items-center gap-0.5 py-2 text-[0.68rem] font-semibold text-ink-500"><MenuIcon className="h-5 w-5" />More</button>
+        <button onClick={onMore} className="relative z-10 flex flex-col items-center gap-0.5 rounded-2xl py-1.5 text-[0.66rem] font-bold text-ink-500 transition active:scale-90"><MenuIcon className="h-5 w-5" />More</button>
       </div>
     </nav>
   );

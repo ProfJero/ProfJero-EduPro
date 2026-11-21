@@ -48,7 +48,7 @@ export function AiCompanion() {
     });
     return () => { live = false; };
   }, [convId]);
-  useEffect(() => endRef.current?.scrollIntoView({ block: 'end', behavior: 'smooth' }), [msgs]);
+  useEffect(() => { endRef.current?.scrollIntoView({ block: 'end', behavior: 'smooth' }); }, [msgs]);
 
   const send = async (text = input) => {
     const message = text.trim();

@@ -108,7 +108,7 @@ function AssignmentSettings({ a, onSaved }: { a: AssignmentRow; onSaved: () => v
   const toast = useToast();
   const [f, setF] = useState(a);
   const [att, setAtt] = useState({ title: '', url: '' });
-  useEffect(() => setF(a), [a]);
+  useEffect(() => { setF(a); }, [a]);
   const save = async () => {
     const { error } = await supabase.from('assignments').update({ title: f.title, instructions: f.instructions, due_at: f.due_at, allow_late: f.allow_late, max_marks: f.max_marks, submission_types: f.submission_types, attachments: f.attachments as never }).eq('id', a.id);
     if (error) toast.error('Could not save', error.message); else { toast.success('Saved'); onSaved(); }

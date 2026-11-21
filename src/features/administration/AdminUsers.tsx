@@ -71,7 +71,7 @@ function RolesDialog({ user, onClose }: { user: AdminUser | null; onClose: () =>
   const [set, setSet] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const current = new Set(user?.roles ?? []);
-  useEffect(() => setSet(new Set(user?.roles ?? [])), [user]);
+  useEffect(() => { setSet(new Set(user?.roles ?? [])); }, [user]);
   return (
     <Dialog open={Boolean(user)} onOpenChange={(o) => { if (!o) onClose(); }} title={`Roles — ${user?.full_name || user?.email || ''}`} description="Changes are recorded in the audit log. Only the owner can manage administrator roles."
       footer={<><Button variant="outline" onClick={onClose}>Cancel</Button><Button loading={busy} onClick={async () => {

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -24,7 +24,7 @@ const schema = z.object({
   objectives: z.array(z.object({ value: z.string().trim().max(200) })),
   prerequisites_text: z.string().trim().max(2000).optional(),
   estimated_hours: z.union([z.coerce.number().min(0).max(1000), z.literal('')]).optional(),
-  visibility: z.enum(['public', 'unlisted', 'school', 'private']),
+  visibility: z.enum(['public', 'unlisted', 'school', 'private', 'class']),
   enrolment_method: z.enum(['open', 'invite', 'closed']),
   school_id: z.string().optional(),
   cover_url: z.union([z.string().trim().url().startsWith('https://'), z.literal('')]).optional(),
@@ -55,7 +55,7 @@ function toRow(raw: CourseFormValues) {
   };
 }
 
-export function CourseFormFields({ initial, courseId, onSubmit, submitLabel, allowSchoolChoice }: { initial: CourseFormValues; courseId?: string; onSubmit: (row: ReturnType<typeof toRow> & { school_id: string | null }) => Promise<void>; submitLabel: string; allowSchoolChoice: boolean }) {
+export function CourseFormFields({ initial, courseId, onSubmit, submitLabel, allowSchoolChoice, classOnly }: { initial: CourseFormValues; courseId?: string; onSubmit: (row: ReturnType<typeof toRow> & { school_id: string | null }) => Promise<void>; submitLabel: string; allowSchoolChoice: boolean; classOnly?: boolean }) {
   const { context } = useAuth();
   const { data: cats } = useCategories();
   const [err, setErr] = useState<string | null>(null);
@@ -120,9 +120,10 @@ export function CourseFormFields({ initial, courseId, onSubmit, submitLabel, all
           </Field>
         )}
         <div className="grid gap-5 sm:grid-cols-2">
-          <Field label="Visibility"><Select {...register('visibility')}>
-            <option value="public">Public — listed in the catalogue</option><option value="unlisted">Unlisted — anyone with the link</option>
-            {schoolId && <option value="school">School only</option>}<option value="private">Private — invited learners only</option>
+          <Field label="Who can access it" hint={watch('visibility') === 'class' ? 'Only members of the classes you assign it to can open the lessons and materials. You can publish it to your class straight away.' : watch('visibility') === 'public' ? 'Public courses are reviewed before they appear in the catalogue.' : undefined}><Select {...register('visibility')}>
+            <option value="class">My class(es) only — like a real classroom</option>
+            {!classOnly && <><option value="public">Public — anyone, listed in the catalogue</option><option value="unlisted">Unlisted — anyone with the link</option>
+            {schoolId && <option value="school">School only</option>}<option value="private">Private — invited learners only</option></>}
           </Select></Field>
           <Field label="Enrolment"><Select {...register('enrolment_method')}><option value="open">Open — learners self-enrol</option><option value="invite">By teacher / school only</option><option value="closed">Closed</option></Select></Field>
         </div>
@@ -141,16 +142,23 @@ export function CourseNewPage() {
   const qc = useQueryClient();
   const toast = useToast();
   const staffSchools = (context?.schools ?? []).filter((s) => s.roles?.some((r) => r === 'teacher' || r === 'school_admin'));
+  const [params] = useSearchParams();
+  const forClass = params.get('class');
   const canIndependent = context?.roles.includes('teacher') || context?.roles.includes('platform_admin');
+  const classOwner = Boolean(context?.teaches_classes);
+  const classOnly = !canIndependent && !staffSchools.length && classOwner;
   const initial = toFormValues();
-  if (!canIndependent && staffSchools[0]) initial.school_id = staffSchools[0].school_id;
+  if (forClass || classOnly) { initial.visibility = 'class'; initial.enrolment_method = 'invite'; }
+  if (!canIndependent && !classOnly && staffSchools[0]) initial.school_id = staffSchools[0].school_id;
   return (
     <div className="mx-auto max-w-3xl">
       <PageHeader back={{ to: '/teach/courses', label: 'My courses' }} title="Create a course" description="Start with the basics — you'll add modules and lessons next." />
-      {!canIndependent && !staffSchools.length ? <Alert tone="warning">You need instructor access or a school teaching role to create courses.</Alert> : (
-        <CourseFormFields initial={initial} allowSchoolChoice={Boolean(staffSchools.length)} submitLabel="Create course & add lessons" onSubmit={async (row) => {
+      {forClass && <Alert tone="info" className="mb-4" title="Creating lessons for your class">This course will be added to your class automatically. Only class members can open it.</Alert>}
+      {!canIndependent && !staffSchools.length && !classOwner ? <Alert tone="warning">You need instructor access, a school teaching role or a class of your own to create courses. <a href="/teach/classes?new=1" className="font-semibold underline">Create a class</a> first.</Alert> : (
+        <CourseFormFields initial={initial} classOnly={classOnly} allowSchoolChoice={Boolean(staffSchools.length) && !forClass} submitLabel="Create course & add lessons" onSubmit={async (row) => {
           const { data, error } = await supabase.from('courses').insert({ ...row, owner_id: user!.id, status: 'draft', visibility: row.visibility === 'school' && !row.school_id ? 'private' : row.visibility }).select('id').single();
           if (error) throw new Error(error.message);
+          if (forClass) await supabase.from('class_courses').insert({ class_id: forClass, course_id: data.id, assigned_by: user!.id });
           await supabase.from('course_instructors').insert({ course_id: data.id, user_id: user!.id, role: 'lead' });
           await supabase.from('course_modules').insert({ course_id: data.id, title: 'Module 1', position: 0 });
           void qc.invalidateQueries({ queryKey: ['managed-courses'] });

@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { BarChart3, BookOpen, CalendarCheck, Check, Crown, KeyRound, Presentation, Users, UsersRound, Video } from 'lucide-react';
+import { BarChart3, BookOpen, Plus, CalendarCheck, Check, Crown, KeyRound, Presentation, Users, UsersRound, Video } from 'lucide-react';
 import { Avatar, Badge, Button, ButtonLink, Card, CardBody, CardHeader, EmptyState, Input, LoadingBlock, PageHeader, Select, Tabs, useToast } from '@/components/ui';
 import { supabase, unwrap } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/features/authentication/AuthProvider';
+import { useManagedCourses } from '@/features/teachers/queries';
 import { useUpcomingSessions } from '@/features/learning/queries';
 import { SessionCard } from '@/features/live/SessionCard';
 import { AnnouncementComposer, AnnouncementList } from '@/features/notifications/Announcements';
@@ -34,7 +35,7 @@ export function TeacherClassPage() {
         { value: 'leaders', label: <span className="inline-flex items-center gap-1.5"><Crown className="h-4 w-4" />Leaders</span>, content: <LeadersPanel classId={cls.id} /> },
         { value: 'groups', label: <span className="inline-flex items-center gap-1.5"><UsersRound className="h-4 w-4" />Groups</span>, content: <ClassGroups classId={cls.id} /> },
         { value: 'progress', label: <span className="inline-flex items-center gap-1.5"><BarChart3 className="h-4 w-4" />Progress</span>, content: <ClassProgress classId={cls.id} /> },
-        ...(!independent ? [{ value: 'courses', label: <span className="inline-flex items-center gap-1.5"><BookOpen className="h-4 w-4" />Subjects</span>, content: <ClassCourses classId={cls.id} /> }] : []),
+        { value: 'courses', label: <span className="inline-flex items-center gap-1.5"><BookOpen className="h-4 w-4" />Lessons & materials</span>, content: <ClassCourses classId={cls.id} /> },
         { value: 'live', label: 'Live classes', content: sessions.data?.length ? <div className="space-y-3">{sessions.data.map((s) => <SessionCard key={s.id} s={s} compact />)}</div> : <EmptyState title="No live classes scheduled" action={<ButtonLink to={`/teach/live?class=${cls.id}`}>Schedule one</ButtonLink>} /> },
         { value: 'news', label: 'Announcements', content: <div className="grid gap-5 xl:grid-cols-2"><AnnouncementComposer scope="class" classId={cls.id} /><AnnouncementList scope="class" id={cls.id} manage /></div> },
       ]} />
@@ -62,7 +63,7 @@ export function RollCall({ classId }: { classId: string }) {
   const existing = useQuery({ queryKey: ['attendance', classId, date], queryFn: async () => unwrap(await supabase.from('class_attendance').select('user_id, status, note').eq('class_id', classId).eq('attendance_date', date)) });
   const [marks, setMarks] = useState<Record<string, Status>>({});
   const [busy, setBusy] = useState(false);
-  useEffect(() => setMarks(Object.fromEntries((existing.data ?? []).map((r) => [r.user_id, r.status as Status]))), [existing.data]);
+  useEffect(() => { setMarks(Object.fromEntries((existing.data ?? []).map((r) => [r.user_id, r.status as Status]))); }, [existing.data]);
   const counts = useMemo(() => STATUSES.map((s) => ({ ...s, n: Object.values(marks).filter((m) => m === s.v).length })), [marks]);
   if (members.isLoading) return <LoadingBlock />;
   return (
@@ -114,22 +115,40 @@ function ClassCourses({ classId }: { classId: string }) {
   const toast = useToast();
   const qc = useQueryClient();
   const { data: cls } = useClassInfo(classId);
-  const assigned = useQuery({ queryKey: ['class-courses', classId], queryFn: async () => unwrap(await supabase.from('class_courses').select('course:courses(id, title, status)').eq('class_id', classId)) as unknown as { course: { id: string; title: string; status: string } | null }[] });
-  const available = useQuery({ queryKey: ['school-courses-for', cls?.school_id], enabled: Boolean(cls?.school_id), queryFn: async () => unwrap(await supabase.from('courses').select('id, title').eq('school_id', cls!.school_id!).in('status', ['published', 'draft'])) });
+  const learning = useQuery({ queryKey: ['class-learning', classId], queryFn: async () => unwrap(await supabase.rpc('class_learning', { p_class: classId })) });
+  const managed = useManagedCourses();
+  const schoolCourses = useQuery({ queryKey: ['school-courses-for', cls?.school_id], enabled: Boolean(cls?.school_id), queryFn: async () => unwrap(await supabase.from('courses').select('id, title').eq('school_id', cls!.school_id!).in('status', ['published', 'draft'])) });
   const [pick, setPick] = useState('');
-  const ids = new Set((assigned.data ?? []).map((a) => a.course?.id));
+  const ids = new Set((learning.data ?? []).map((a) => a.course_id));
+  const options = [...(schoolCourses.data ?? []), ...(managed.data ?? []).map((c) => ({ id: c.id, title: c.title }))].filter((c, i, a) => !ids.has(c.id) && a.findIndex((x) => x.id === c.id) === i);
+  const remove = async (courseId: string) => {
+    const { error } = await supabase.from('class_courses').delete().eq('class_id', classId).eq('course_id', courseId);
+    if (error) toast.error('Could not remove', error.message); else { toast.success('Removed from class'); void qc.invalidateQueries({ queryKey: ['class-learning', classId] }); }
+  };
   return (
     <div className="space-y-4">
-      {assigned.data?.length ? (
-        <ul className="grid gap-3 sm:grid-cols-2">{assigned.data.map((a) => a.course && <li key={a.course.id}><Link to={`/teach/courses/${a.course.id}`} className="card block p-4 hover:border-brand-300"><p className="font-bold">{a.course.title}</p><p className="text-xs capitalize text-ink-500">{a.course.status}</p></Link></li>)}</ul>
-      ) : <EmptyState icon={<BookOpen className="h-6 w-6" />} title="No subjects assigned" description="Assigning a course enrols every student in the class automatically." />}
-      <Card><CardBody className="flex flex-col gap-2 sm:flex-row">
-        <Select value={pick} onChange={(e) => setPick(e.target.value)} aria-label="Course to assign"><option value="">Assign a school course…</option>{available.data?.filter((c) => !ids.has(c.id)).map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}</Select>
-        <Button disabled={!pick} onClick={async () => {
-          const { error } = await supabase.from('class_courses').insert({ class_id: classId, course_id: pick, assigned_by: user!.id });
-          if (error) toast.error('Could not assign', error.message); else { toast.success('Course assigned', 'Students were enrolled automatically.'); setPick(''); void qc.invalidateQueries({ queryKey: ['class-courses', classId] }); }
-        }}>Assign</Button>
-      </CardBody></Card>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="max-w-2xl text-sm text-ink-600">Lessons, notes, quizzes and resources you add here are <b>only for members of this class</b> — just like a real classroom. Anyone who joins later gets access; anyone who leaves loses it.</p>
+        <ButtonLink to={`/teach/courses/new?class=${classId}`} leftIcon={<Plus className="h-4 w-4" />}>Create lessons for this class</ButtonLink>
+      </div>
+      {learning.data?.length ? (
+        <ul className="grid gap-3 sm:grid-cols-2">{learning.data.map((c) => (
+          <li key={c.course_id} className="card flex flex-col p-4">
+            <Link to={`/teach/courses/${c.course_id}`} className="font-bold hover:text-brand-700">{c.title}</Link>
+            <p className="mt-1 text-xs text-ink-500">{c.lessons} published lesson{Number(c.lessons) === 1 ? '' : 's'} · {c.visibility === 'class' ? 'Class only' : c.visibility} · <span className="capitalize">{c.status}</span></p>
+            <div className="mt-3 flex gap-2"><ButtonLink size="sm" variant="secondary" to={`/teach/courses/${c.course_id}?tab=curriculum`}>Edit lessons</ButtonLink><Button size="sm" variant="ghost" onClick={() => void remove(c.course_id)}>Remove</Button></div>
+          </li>
+        ))}</ul>
+      ) : <EmptyState icon={<BookOpen className="h-6 w-6" />} title="No lessons for this class yet" description="Create a class course to teach lessons, share notes and set quizzes only your class can see." />}
+      {options.length > 0 && (
+        <Card><CardBody className="flex flex-col gap-2 sm:flex-row">
+          <Select value={pick} onChange={(e) => setPick(e.target.value)} aria-label="Course to add"><option value="">Add an existing course…</option>{options.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}</Select>
+          <Button disabled={!pick} onClick={async () => {
+            const { error } = await supabase.from('class_courses').insert({ class_id: classId, course_id: pick, assigned_by: user!.id });
+            if (error) toast.error('Could not add', error.message); else { toast.success('Course added', 'Class members were enrolled automatically.'); setPick(''); void qc.invalidateQueries({ queryKey: ['class-learning', classId] }); }
+          }}>Add to class</Button>
+        </CardBody></Card>
+      )}
     </div>
   );
 }

@@ -11,7 +11,8 @@ import { useAuth } from '@/features/authentication/AuthProvider';
 import { FileUploadButton } from '@/features/media/FileUploadButton';
 import { COUNTRIES, TIMEZONES } from './geo';
 import { ACCENTS, networkIsConstrained, usePrefs, type ThemeMode } from '@/features/preferences/PreferencesProvider';
-import { currentSubscription, disablePush, enablePush, pushConfigured, pushSupported } from '@/lib/push';
+import { disablePush, enablePush, pushState, sendTestPush, type PushState } from '@/lib/push';
+import { usePush } from '@/features/notifications/PushPrompt';
 import { ProviderConnections } from '@/features/live/ProviderConnections';
 import { cn } from '@/lib/utils';
 
@@ -268,28 +269,30 @@ function AppearanceSection() {
 
 function NotificationsSection() {
   const toast = useToast();
-  const [state, setState] = useState<'loading' | 'on' | 'off' | 'blocked' | 'unsupported' | 'unconfigured'>('loading');
-  useEffect(() => {
-    (async () => {
-      if (!pushSupported()) return setState('unsupported');
-      if (!pushConfigured()) return setState('unconfigured');
-      if (Notification.permission === 'denied') return setState('blocked');
-      setState((await currentSubscription()) ? 'on' : 'off');
-    })();
-  }, []);
+  const push = usePush();
+  const [state, setState] = useState<PushState | 'loading'>('loading');
+  const [busy, setBusy] = useState(false);
+  const load = () => void pushState().then(setState);
+  useEffect(load, []);
   return (
     <Card>
       <CardHeader title={<span className="inline-flex items-center gap-2"><BellRing className="h-5 w-5" />Device notifications</span>} description="Receive live-class reminders, deadlines, grades and announcements on this device, even when the app is closed." />
       <CardBody className="space-y-3">
-        {state === 'unsupported' && <Alert tone="warning">This browser does not support push notifications. On iPhone and iPad, add ProfJero Edu to your Home Screen first (Share → Add to Home Screen).</Alert>}
+        {state === 'install' && <Alert tone="info" title="Add to Home Screen first">On iPhone and iPad, tap Share → Add to Home Screen, open ProfJero Edu from there, then turn notifications on.</Alert>}
+        {state === 'unsupported' && <Alert tone="warning">This browser does not support push notifications. Try Chrome, Edge, Firefox or Samsung Internet.</Alert>}
         {state === 'unconfigured' && <Alert tone="info">Push notifications are not configured on this server yet.</Alert>}
-        {state === 'blocked' && <Alert tone="warning">Notifications are blocked for this site. Allow them in your browser's site settings, then reload.</Alert>}
+        {state === 'blocked' && <Alert tone="warning" title="Notifications are blocked">Tap the lock icon beside the web address → Notifications → Allow, then reload this page.</Alert>}
         {(state === 'on' || state === 'off') && (
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-sm text-ink-700">Push notifications are <strong>{state}</strong> on this device.</p>
-            {state === 'off'
-              ? <Button onClick={async () => { const r = await enablePush().catch((e) => { toast.error('Failed', errorMessage(e)); return 'error'; }); if (r === 'granted') { setState('on'); toast.success('Notifications enabled'); } else if (r === 'denied') setState('blocked'); }}>Turn on</Button>
-              : <Button variant="outline" onClick={async () => { await disablePush(); setState('off'); toast.info('Notifications turned off for this device'); }}>Turn off</Button>}
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-ink-50 p-4">
+            <p className="text-sm text-ink-700">Push notifications are <strong className={state === 'on' ? 'text-growth-700' : ''}>{state}</strong> on this device.</p>
+            <div className="flex gap-2">
+              {state === 'off'
+                ? <Button loading={busy} leftIcon={<BellRing className="h-4 w-4" />} onClick={async () => { setBusy(true); const r = await enablePush().catch((e) => { toast.error('Failed', errorMessage(e)); return 'error'; }); setBusy(false); if (r === 'granted') toast.success('Notifications enabled'); load(); push.refresh(); }}>Allow notifications</Button>
+                : <>
+                  <Button variant="secondary" loading={busy} onClick={async () => { setBusy(true); try { await sendTestPush(); toast.success('Test sent', 'It should pop up in a few seconds — try closing the app first.'); } catch (e) { toast.error('Could not send', errorMessage(e)); } setBusy(false); }}>Send a test notification</Button>
+                  <Button variant="outline" onClick={async () => { await disablePush(); toast.info('Notifications turned off for this device'); load(); push.refresh(); }}>Turn off</Button>
+                </>}
+            </div>
           </div>
         )}
         <p className="text-xs text-ink-500">In-app notifications are always available under <Link to="/notifications" className="font-semibold text-brand-700">Notifications</Link>.</p>

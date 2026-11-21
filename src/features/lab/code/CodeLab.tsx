@@ -1,19 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import Editor, { type OnMount } from '@monaco-editor/react';
 import type * as Monaco from 'monaco-editor';
 import {
-  CheckCircle2, ChevronDown, Code2, Copy, Download, FilePlus2, FileText, FolderOpen, Keyboard, Loader2, Play, Save, Settings2, Share2, Square, Trash2, Wand2, XCircle,
+  CheckCircle2, ChevronDown, Code2, Copy, Download, Expand, ExternalLink, FilePlus2, FileText, FolderOpen, Keyboard, Loader2, Maximize2, Minimize2, Monitor, Play, Save, Settings2, Share2, Smartphone, Square, Tablet, Trash2, Wand2, XCircle,
 } from 'lucide-react';
-import { Alert, Badge, Button, Dialog, EmptyState, Input, LoadingBlock, Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger, Select, useToast } from '@/components/ui';
+import { Alert, Badge, Button, ConfirmDialog, Dialog, EmptyState, Input, LoadingBlock, Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger, useToast } from '@/components/ui';
 import { supabase, unwrap } from '@/lib/supabase';
 import { env } from '@/lib/env';
 import { cn, errorMessage } from '@/lib/utils';
 import { fromNow } from '@/lib/dates';
 import { useAuth } from '@/features/authentication/AuthProvider';
 import { usePrefs } from '@/features/preferences/PreferencesProvider';
-import { LANGS, monacoLanguageFor, type LabFile, type LangId } from './languages';
+import { LANGS, monacoLanguageFor, type LabFile, type LangConfig, type LangId } from './languages';
 import { buildWebDocument, runProgram, runTests, stopAll, type RunEvent, type TestResult } from './runners';
 import { setupMonaco } from './monacoSetup';
 
@@ -54,6 +54,10 @@ export function CodeWorkspace({ initialLang = 'python', initialFiles, tests, tes
   const [settings, setSettings] = useState<Settings>(readSettings);
   const [previewDoc, setPreviewDoc] = useState('');
   const [split, setSplit] = useState(58);
+  const [mobileView, setMobileView] = useState<'code' | 'output'>('code');
+  const [outMax, setOutMax] = useState(false);
+  const [device, setDevice] = useState<'full' | 'tablet' | 'phone'>('full');
+  const outRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<typeof Monaco | null>(null);
   const runRef = useRef<() => void>(() => undefined);
@@ -93,6 +97,7 @@ export function CodeWorkspace({ initialLang = 'python', initialFiles, tests, tes
 
   const run = useCallback(async () => {
     if (running) return;
+    setMobileView('output');
     if (lang === 'web') { setPreviewDoc(buildWebDocument(files)); setPanel('preview'); return; }
     setOut([]); setRunning(true); setStatus(''); setMarker(); setPanel('console');
     const onEvent = (e: RunEvent) => {
@@ -111,7 +116,7 @@ export function CodeWorkspace({ initialLang = 'python', initialFiles, tests, tes
 
   const check = useCallback(async () => {
     if (!tests || !testFn) return;
-    setRunning(true); setPanel('tests');
+    setRunning(true); setPanel('tests'); setMobileView('output');
     try {
       const r = await runTests(lang, files, main, testFn, tests);
       setTestResults(r);
@@ -171,13 +176,14 @@ export function CodeWorkspace({ initialLang = 'python', initialFiles, tests, tes
 
   const passed = testResults?.filter((t) => t.pass).length ?? 0;
   return (
-    <div className={cn('flex flex-col overflow-hidden rounded-2xl border border-ink-200 bg-surface', compact ? 'h-[34rem]' : 'h-[calc(100vh-9.5rem)] min-h-[34rem]')}>
+    <div data-no-contrast className={cn('flex flex-col overflow-hidden rounded-2xl border border-ink-200 bg-surface', compact ? 'h-[34rem]' : 'h-[calc(100dvh-13rem)] min-h-[30rem] lg:h-[calc(100dvh-9.5rem)]')}>
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2 border-b border-ink-200 bg-ink-50 px-3 py-2">
         {!hideProjectBar && <Input value={title} onChange={(e) => setTitle(e.target.value)} aria-label="Project title" className="h-9 w-44 sm:w-56" readOnly={readOnly} />}
-        <Select value={lang} onChange={(e) => changeLang(e.target.value as LangId)} aria-label="Language" className="h-9 w-40" disabled={Boolean(tests) || readOnly}>
-          {Object.values(LANGS).map((l) => <option key={l.id} value={l.id}>{l.name}{l.runtime === 'server' ? ' (server)' : ''}</option>)}
-        </Select>
+        <LanguagePicker value={lang} onChange={changeLang} disabled={Boolean(tests) || readOnly} />
+        <div className="flex rounded-xl bg-ink-200/60 p-0.5 text-xs font-bold lg:hidden" role="tablist" aria-label="View">
+          {(['code', 'output'] as const).map((v) => <button key={v} role="tab" aria-selected={mobileView === v} onClick={() => setMobileView(v)} className={cn('rounded-lg px-3 py-1.5 capitalize transition', mobileView === v ? 'bg-surface text-ink-900 shadow-sm' : 'text-ink-500')}>{v === 'output' && lang === 'web' ? 'Preview' : v}</button>)}
+        </div>
         <div className="flex-1" />
         {status && <span className="hidden items-center gap-1 text-xs text-ink-500 sm:inline-flex"><Loader2 className="h-3.5 w-3.5 animate-spin" />{status}</span>}
         {running
@@ -221,7 +227,7 @@ export function CodeWorkspace({ initialLang = 'python', initialFiles, tests, tes
 
         {/* Editor + output split */}
         <div className="flex min-h-0 min-w-0 flex-1 flex-col lg:flex-row">
-          <div className="min-h-[14rem] min-w-0 flex-1" style={{ flexBasis: `${split}%` }}>
+          <div className={cn('min-h-0 min-w-0 flex-1', mobileView === 'output' && 'hidden', 'lg:block', outMax && 'lg:hidden')} style={{ flexBasis: `${split}%` }}>
             <Editor
               key={`${lang}:${current.name}`}
               height="100%"
@@ -234,14 +240,15 @@ export function CodeWorkspace({ initialLang = 'python', initialFiles, tests, tes
               loading={<div className="flex h-full items-center justify-center gap-2 text-sm text-ink-500"><Loader2 className="h-4 w-4 animate-spin" />Loading the code editor…</div>}
               options={{
                 fontSize: settings.fontSize, wordWrap: settings.wordWrap ? 'on' : 'off', minimap: { enabled: settings.minimap }, tabSize: settings.tabSize, readOnly,
-                automaticLayout: true, scrollBeyondLastLine: false, fontLigatures: true, bracketPairColorization: { enabled: true }, guides: { bracketPairs: true, indentation: true },
+                automaticLayout: true, scrollBeyondLastLine: false, fixedOverflowWidgets: true,
+                suggest: { showWords: true, preview: true, showStatusBar: true }, scrollbar: { alwaysConsumeMouseWheel: false }, fontLigatures: true, bracketPairColorization: { enabled: true }, guides: { bracketPairs: true, indentation: true },
                 quickSuggestions: { other: true, comments: false, strings: true }, suggestOnTriggerCharacters: true, tabCompletion: 'on', snippetSuggestions: 'top',
                 formatOnPaste: true, smoothScrolling: true, cursorBlinking: 'smooth', renderLineHighlight: 'all', stickyScroll: { enabled: true }, padding: { top: 10 },
                 fontFamily: "'Cascadia Code', 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
               }}
             />
           </div>
-          <div role="separator" aria-orientation="vertical" tabIndex={0} aria-label="Resize panels" className="hidden w-1.5 cursor-col-resize bg-ink-100 hover:bg-brand-200 lg:block"
+          <div role="separator" aria-orientation="vertical" tabIndex={0} aria-label="Resize panels" className={cn('hidden w-1.5 cursor-col-resize bg-ink-100 hover:bg-brand-200', !outMax && 'lg:block')}
             onKeyDown={(e) => { if (e.key === 'ArrowLeft') setSplit((s) => Math.max(30, s - 4)); if (e.key === 'ArrowRight') setSplit((s) => Math.min(80, s + 4)); }}
             onPointerDown={(e) => {
               const parent = (e.currentTarget.parentElement as HTMLElement).getBoundingClientRect();
@@ -250,7 +257,7 @@ export function CodeWorkspace({ initialLang = 'python', initialFiles, tests, tes
               window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
             }} />
           {/* Output */}
-          <div className="flex min-h-[12rem] min-w-0 flex-col border-t border-ink-200 lg:border-l lg:border-t-0" style={{ flexBasis: `${100 - split}%` }}>
+          <div ref={outRef} className={cn('min-h-0 min-w-0 flex-1 flex-col bg-surface lg:flex lg:border-l lg:border-ink-200', mobileView === 'code' ? 'hidden' : 'flex')} style={{ flexBasis: outMax ? '100%' : `${100 - split}%` }}>
             <div className="flex items-center gap-1 border-b border-ink-200 bg-ink-50 px-2" role="tablist">
               {([...(lang === 'web' ? ['preview', 'console'] : ['console', 'input']), ...(tests ? ['tests'] : [])] as ('console' | 'input' | 'preview' | 'tests')[]).map((p) => (
                 <button key={p} role="tab" aria-selected={panel === p} onClick={() => setPanel(p)} className={cn('px-3 py-2 text-xs font-bold uppercase tracking-wide', panel === p ? 'border-b-2 border-brand-600 text-brand-700' : 'text-ink-500')}>
@@ -258,11 +265,19 @@ export function CodeWorkspace({ initialLang = 'python', initialFiles, tests, tes
                 </button>
               ))}
               <div className="flex-1" />
+              {panel === 'preview' && (
+                <div className="flex items-center gap-0.5" aria-label="Preview size">
+                  {([['phone', Smartphone], ['tablet', Tablet], ['full', Monitor]] as const).map(([d, I]) => <button key={d} onClick={() => setDevice(d)} aria-pressed={device === d} title={`${d} width`} className={cn('rounded-md p-1.5', device === d ? 'bg-brand-100 text-brand-700' : 'text-ink-400 hover:text-ink-700')}><I className="h-3.5 w-3.5" /></button>)}
+                  <button onClick={() => { const w = window.open('', '_blank'); if (w) { w.document.write(previewDoc || buildWebDocument(files)); w.document.close(); } }} title="Open in a new tab" className="rounded-md p-1.5 text-ink-400 hover:text-ink-700"><ExternalLink className="h-3.5 w-3.5" /></button>
+                </div>
+              )}
               {panel === 'console' && <button className="px-2 text-xs font-semibold text-ink-500 hover:text-ink-800" onClick={() => setOut([])}>Clear</button>}
+              <button onClick={() => setOutMax((m) => !m)} className="hidden rounded-md p-1.5 text-ink-400 hover:text-ink-700 lg:block" title={outMax ? 'Restore' : 'Maximise output'} aria-pressed={outMax}>{outMax ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}</button>
+              <button onClick={() => outRef.current?.requestFullscreen?.()} className="rounded-md p-1.5 text-ink-400 hover:text-ink-700" title="Full screen"><Expand className="h-3.5 w-3.5" /></button>
             </div>
             <div className="min-h-0 flex-1 overflow-auto">
               {panel === 'console' && (
-                <pre className="min-h-full whitespace-pre-wrap break-words bg-ink-950 p-3 font-mono text-[0.82rem] leading-relaxed text-ink-100 dark:bg-black/40" aria-live="polite">
+                <pre className="min-h-full whitespace-pre-wrap break-words bg-[#0b1222] p-3 font-mono text-[0.9rem] leading-relaxed text-[#e2e8f0] sm:text-[0.85rem]" aria-live="polite">
                   {out.length === 0 && <span className="text-ink-400">{cfg.runtime === 'server' ? 'Output from the server runner appears here. ' : ''}Press Run (Ctrl+Enter) to execute your code.</span>}
                   {out.map((l, i) => l.kind === 'table'
                     ? <div key={i} className="my-2 overflow-x-auto rounded border border-white/10"><table className="text-xs"><thead><tr>{l.columns.map((c) => <th key={c} className="border-b border-white/10 px-2 py-1 text-left text-growth-500">{c}</th>)}</tr></thead><tbody>{l.rows.map((r, j) => <tr key={j}>{r.map((v, k) => <td key={k} className="px-2 py-0.5">{String(v ?? 'NULL')}</td>)}</tr>)}</tbody></table></div>
@@ -276,9 +291,13 @@ export function CodeWorkspace({ initialLang = 'python', initialFiles, tests, tes
                 </div>
               )}
               {panel === 'preview' && (
-                runnerUrl
-                  ? <iframe ref={iframeRef} title="Web preview" src={runnerUrl} className="h-full min-h-[14rem] w-full bg-white" sandbox="allow-scripts allow-modals allow-forms" onLoad={() => iframeRef.current?.contentWindow?.postMessage({ __pjeRender: previewDoc || buildWebDocument(files) }, '*')} />
-                  : <iframe title="Web preview" srcDoc={previewDoc} className="h-full min-h-[14rem] w-full bg-white" sandbox="allow-scripts allow-modals allow-forms" />
+                <div className={cn('flex h-full justify-center', device !== 'full' && 'bg-ink-100 p-3')}>
+                  <div className={cn('h-full w-full overflow-hidden bg-white transition-[max-width] duration-300', device === 'phone' && 'max-w-[390px] rounded-[1.6rem] border-[6px] border-ink-800 shadow-xl', device === 'tablet' && 'max-w-[820px] rounded-2xl border-[6px] border-ink-800 shadow-xl')}>
+                    {runnerUrl
+                      ? <iframe ref={iframeRef} title="Web preview" src={runnerUrl} className="h-full min-h-[20rem] w-full bg-white" sandbox="allow-scripts allow-modals allow-forms allow-popups" onLoad={() => iframeRef.current?.contentWindow?.postMessage({ __pjeRender: previewDoc || buildWebDocument(files) }, '*')} />
+                      : <iframe title="Web preview" srcDoc={previewDoc} className="h-full min-h-[20rem] w-full bg-white" sandbox="allow-scripts allow-modals allow-forms" />}
+                  </div>
+                </div>
               )}
               {panel === 'tests' && (
                 <div className="space-y-2 p-3">
@@ -314,6 +333,18 @@ export function CodeLabPage() {
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [manage, setManage] = useState(false);
+  const [confirmDel, setConfirmDel] = useState<{ id: string; title: string } | null>(null);
+  const del = useMutation({
+    mutationFn: async (id: string) => unwrap(await supabase.from('lab_projects').delete().eq('id', id).eq('owner_id', user!.id)),
+    onSuccess: (_d, id) => {
+      try { localStorage.removeItem(DRAFT_KEY(id)); } catch { /* ignore */ }
+      toast.success('Project deleted'); setConfirmDel(null);
+      void qc.invalidateQueries({ queryKey: ['lab-projects'] }); void qc.invalidateQueries({ queryKey: ['lab-projects-home'] });
+      if (id === projectId) nav('/lab/code', { replace: true });
+    },
+    onError: (e) => toast.error('Could not delete', errorMessage(e)),
+  });
   const project = useQuery({
     queryKey: ['lab-project', projectId], enabled: Boolean(projectId),
     queryFn: async () => unwrap(await supabase.from('lab_projects').select('*').eq('id', projectId!).maybeSingle()) as unknown as ProjectRow | null,
@@ -354,12 +385,14 @@ export function CodeLabPage() {
         <div><p className="text-xs font-bold uppercase tracking-[0.14em] text-teal-600">EduLab</p><h1 className="text-2xl font-extrabold">Code Lab</h1></div>
         <div className="flex flex-wrap gap-2">
           {p && <Button variant="outline" size="sm" leftIcon={<Share2 className="h-4 w-4" />} onClick={() => setShareOpen(true)}>Share</Button>}
+          {p && p.owner_id === user?.id && <Button variant="ghost" size="sm" leftIcon={<Trash2 className="h-4 w-4" />} onClick={() => setConfirmDel({ id: p.id, title: p.title })}>Delete</Button>}
           <Menu>
             <MenuTrigger className="inline-flex h-8 items-center gap-1.5 rounded-xl border border-ink-200 bg-surface px-3 text-sm font-semibold text-ink-700"><FolderOpen className="h-4 w-4" />My projects</MenuTrigger>
             <MenuContent className="max-h-80 w-72 overflow-y-auto">
               <MenuItem onSelect={() => nav('/lab/code')} icon={<FilePlus2 className="h-4 w-4" />}>New project</MenuItem>
               <MenuSeparator />
-              {(projects.data ?? []).map((x) => <MenuItem key={x.id} onSelect={() => nav(`/lab/code/${x.id}`)}><span className="flex-1 truncate">{x.title}</span><span className="text-xs text-ink-400">{LANGS[x.language]?.name} · {fromNow(x.updated_at)}</span></MenuItem>)}
+              {(projects.data ?? []).map((x) => <MenuItem key={x.id} onSelect={() => nav(`/lab/code/${x.id}`)}><span className="min-w-0 flex-1"><span className="block truncate">{x.title}</span><span className="text-xs text-ink-400">{LANGS[x.language]?.name} · {fromNow(x.updated_at)}</span></span></MenuItem>)}
+              {(projects.data?.length ?? 0) > 0 && <><MenuSeparator /><MenuItem onSelect={() => setManage(true)} icon={<Trash2 className="h-4 w-4" />}>Manage & delete projects…</MenuItem></>}
               {!projects.data?.length && <p className="px-3 py-2 text-sm text-ink-500">No saved projects yet.</p>}
             </MenuContent>
           </Menu>
@@ -367,7 +400,47 @@ export function CodeLabPage() {
       </div>
       <CodeWorkspace key={projectId ?? `new-${prefill.lang}`} projectId={projectId} initialLang={p?.language ?? prefill.lang} initialFiles={p?.files ?? prefill.files} title={p?.title} onSave={save} saving={saving} />
       {p && <ShareDialog open={shareOpen} onOpenChange={setShareOpen} project={p} onChange={() => void project.refetch()} />}
+      <Dialog open={manage} onOpenChange={setManage} title="My projects" description="Open or delete your saved Code Lab projects." size="lg">
+        <ul className="max-h-[60vh] divide-y divide-ink-100 overflow-y-auto">
+          {(projects.data ?? []).map((x) => (
+            <li key={x.id} className="flex items-center gap-3 py-2.5">
+              <Code2 className="h-4 w-4 shrink-0 text-teal-600" />
+              <button className="min-w-0 flex-1 text-left" onClick={() => { setManage(false); nav(`/lab/code/${x.id}`); }}><span className="block truncate font-semibold">{x.title}</span><span className="text-xs text-ink-500">{LANGS[x.language]?.name} · {fromNow(x.updated_at)}</span></button>
+              <Button size="sm" variant="ghost" onClick={() => setConfirmDel({ id: x.id, title: x.title })} aria-label={`Delete ${x.title}`}><Trash2 className="h-4 w-4 text-red-600" /></Button>
+            </li>
+          ))}
+          {!projects.data?.length && <li className="py-6 text-center text-sm text-ink-500">No saved projects.</li>}
+        </ul>
+      </Dialog>
+      <ConfirmDialog open={Boolean(confirmDel)} onOpenChange={(o) => !o && setConfirmDel(null)} title="Delete this project?" description={`“${confirmDel?.title ?? ''}” will be permanently deleted. Shared links stop working.`} tone="danger" confirmLabel="Delete" loading={del.isPending} onConfirm={() => confirmDel && del.mutate(confirmDel.id)} />
     </div>
+  );
+}
+
+function LanguagePicker({ value, onChange, disabled }: { value: LangId; onChange: (l: LangId) => void; disabled?: boolean }) {
+  const cur = LANGS[value];
+  const groups: [string, LangConfig[]][] = [['Runs in your browser', Object.values(LANGS).filter((l) => l.runtime === 'browser')], ['Runs on the server', Object.values(LANGS).filter((l) => l.runtime === 'server')]];
+  return (
+    <Menu>
+      <MenuTrigger disabled={disabled} className="inline-flex h-9 min-w-[10.5rem] items-center gap-2 rounded-xl border border-ink-200 bg-surface px-3 text-sm font-semibold text-ink-800 shadow-sm transition hover:border-brand-300 disabled:opacity-60" aria-label={`Language: ${cur.name}`}>
+        <span className={cn('h-2.5 w-2.5 shrink-0 rounded-full', cur.runtime === 'browser' ? 'bg-growth-500' : 'bg-sun-500')} />
+        <span className="flex-1 whitespace-nowrap text-left">{cur.name}</span>
+        <ChevronDown className="h-4 w-4 text-ink-400" />
+      </MenuTrigger>
+      <MenuContent align="start" className="max-h-[70vh] w-64 overflow-y-auto">
+        {groups.map(([label, list]) => (
+          <div key={label}>
+            <MenuLabel>{label}</MenuLabel>
+            {list.map((l) => (
+              <MenuItem key={l.id} onSelect={() => onChange(l.id)}>
+                <span className="flex flex-1 items-center gap-2"><span className="w-10 rounded bg-ink-100 px-1 text-center font-mono text-[0.65rem] font-bold uppercase text-ink-600">{l.ext}</span>{l.name}</span>
+                {l.id === value && <CheckCircle2 className="h-4 w-4 text-brand-600" />}
+              </MenuItem>
+            ))}
+          </div>
+        ))}
+      </MenuContent>
+    </Menu>
   );
 }
 

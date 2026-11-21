@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase, unwrap } from '@/lib/supabase';
 import { setUserTimezone } from '@/lib/dates';
 import { clearOfflineDataForUser } from '@/lib/offline/store';
+import { disablePush, syncPush } from '@/lib/push';
 import { deriveWorkspaces, type MyContext, type Profile, type Workspace } from './types';
 
 type AuthState = {
@@ -49,11 +50,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     staleTime: 60_000,
   });
 
-  useEffect(() => setUserTimezone(profileQ.data?.timezone), [profileQ.data?.timezone]);
+  useEffect(() => { setUserTimezone(profileQ.data?.timezone); }, [profileQ.data?.timezone]);
 
   // Lightweight presence of "last seen" for teacher dashboards (once per session).
   useEffect(() => {
-    if (uid) void supabase.from('profiles').update({ last_seen_at: new Date().toISOString() }).eq('id', uid);
+    if (!uid) return;
+    void supabase.from('profiles').update({ last_seen_at: new Date().toISOString() }).eq('id', uid);
+    void syncPush();
   }, [uid]);
 
   const refresh = useCallback(async () => {
@@ -62,6 +65,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     if (uid) await clearOfflineDataForUser(uid);
+    // Detach this device from the account so the next person here doesn't get our alerts.
+    await disablePush({ keepBrowserSubscription: true }).catch(() => undefined);
     await supabase.auth.signOut();
     qc.clear();
     try {

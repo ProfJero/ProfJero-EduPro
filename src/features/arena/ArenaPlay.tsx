@@ -106,7 +106,7 @@ function MathSprint({ payload, onChange, onFinish }: GameProps) {
   const [vals, setVals] = useState<string[]>([]);
   const [cur, setCur] = useState('');
   const ref = useRef<HTMLInputElement>(null);
-  useEffect(() => ref.current?.focus(), [idx]);
+  useEffect(() => { ref.current?.focus(); }, [idx]);
   const submit = () => {
     const next = [...vals]; next[idx] = cur.trim(); setVals(next); onChange(next); setCur('');
     if (idx + 1 >= problems.length) onFinish(); else setIdx(idx + 1);

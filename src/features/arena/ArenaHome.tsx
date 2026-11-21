@@ -7,10 +7,10 @@ import { supabase, unwrap } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 
 export const GAME_META: Record<string, { name: string; icon: typeof Zap; color: string; blurb: string }> = {
-  math_sprint: { name: 'Math Sprint', icon: Calculator, color: 'from-brand-600 to-brand-800', blurb: 'Quick-fire arithmetic against the clock.' },
-  quiz_rush: { name: 'Quiz Rush', icon: Zap, color: 'from-violet-600 to-indigo-800', blurb: 'Answer subject questions before time runs out.' },
-  word_builder: { name: 'Word Builder', icon: Puzzle, color: 'from-growth-600 to-teal-800', blurb: 'Unscramble the letters using the clue.' },
-  typing_race: { name: 'Typing Race', icon: Keyboard, color: 'from-sun-500 to-orange-700', blurb: 'Type the passage fast and accurately.' },
+  math_sprint: { name: 'Math Sprint', icon: Calculator, color: 'from-brand-600 to-brand-deep', blurb: 'Quick-fire arithmetic against the clock.' },
+  quiz_rush: { name: 'Quiz Rush', icon: Zap, color: 'from-violet-600 to-deep-indigo', blurb: 'Answer subject questions before time runs out.' },
+  word_builder: { name: 'Word Builder', icon: Puzzle, color: 'from-growth-600 to-deep-teal', blurb: 'Unscramble the letters using the clue.' },
+  typing_race: { name: 'Typing Race', icon: Keyboard, color: 'from-sun-500 to-deep-orange', blurb: 'Type the passage fast and accurately.' },
   code_quest: { name: 'Code Quest', icon: Code2, color: 'from-teal-600 to-ink-950', blurb: 'Write a function that passes all the tests.' },
 };
 

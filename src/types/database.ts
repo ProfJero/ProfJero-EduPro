@@ -1971,6 +1971,11 @@ isOneToOne: false
               "is_guest": boolean,"name": string,"requested_at": string,"user_id": string
             }[]
                            },
+"class_learning":
+{ Args: { "p_class": string }; Returns: {
+              "course_id": string,"cover_url": string,"lessons": number,"my_progress": number,"short_description": string,"status": string,"title": string,"visibility": string
+            }[]
+                           },
 "class_preview":
 { Args: { "p_code": string }; Returns: Json
                            },
@@ -2168,6 +2173,9 @@ isOneToOne: false
 "school_report":
 { Args: { "p_school": string }; Returns: Json
                            },
+"send_test_notification":
+{ Args: Record<PropertyKey, never>; Returns: undefined
+                           },
 "session_role":
 { Args: { "p_session": string }; Returns: string
                            },
@@ -2200,7 +2208,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "account_status": "active"|"suspended","app_role": "learner"|"teacher"|"school_admin"|"platform_admin"|"owner"|"guardian","content_status": "draft"|"in_review"|"published"|"unpublished"|"archived","course_level": "beginner"|"intermediate"|"advanced"|"all_levels","course_visibility": "public"|"unlisted"|"school"|"private","enrolment_method": "open"|"invite"|"closed","enrolment_source": "self"|"teacher"|"school"|"admin","enrolment_status": "active"|"completed"|"dropped","lesson_block_type": "heading"|"paragraph"|"image"|"video"|"audio"|"code"|"callout"|"activity"|"quiz"|"resource"|"link"|"table"|"steps"|"embed"|"divider"|"lab","lesson_completion_rule": "mark_complete"|"quiz_pass"|"assignment_submit","meeting_provider": "manual"|"google_meet"|"zoom"|"jitsi"|"teams"|"other","membership_status": "pending"|"invited"|"active"|"suspended"|"removed","question_type": "multiple_choice"|"multiple_select"|"true_false"|"fill_blank"|"short_answer"|"essay"|"matching"|"ordering"|"file_upload","results_visibility": "immediate"|"after_close"|"manual","school_role": "school_admin"|"teacher"|"student"|"guardian","school_status": "pending"|"approved"|"rejected"|"suspended"
+            "account_status": "active"|"suspended","app_role": "learner"|"teacher"|"school_admin"|"platform_admin"|"owner"|"guardian","content_status": "draft"|"in_review"|"published"|"unpublished"|"archived","course_level": "beginner"|"intermediate"|"advanced"|"all_levels","course_visibility": "public"|"unlisted"|"school"|"private"|"class","enrolment_method": "open"|"invite"|"closed","enrolment_source": "self"|"teacher"|"school"|"admin","enrolment_status": "active"|"completed"|"dropped","lesson_block_type": "heading"|"paragraph"|"image"|"video"|"audio"|"code"|"callout"|"activity"|"quiz"|"resource"|"link"|"table"|"steps"|"embed"|"divider"|"lab","lesson_completion_rule": "mark_complete"|"quiz_pass"|"assignment_submit","meeting_provider": "manual"|"google_meet"|"zoom"|"jitsi"|"teams"|"other","membership_status": "pending"|"invited"|"active"|"suspended"|"removed","question_type": "multiple_choice"|"multiple_select"|"true_false"|"fill_blank"|"short_answer"|"essay"|"matching"|"ordering"|"file_upload","results_visibility": "immediate"|"after_close"|"manual","school_role": "school_admin"|"teacher"|"student"|"guardian","school_status": "pending"|"approved"|"rejected"|"suspended"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -2320,7 +2328,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "account_status": ["active", "suspended"],"app_role": ["learner", "teacher", "school_admin", "platform_admin", "owner", "guardian"],"content_status": ["draft", "in_review", "published", "unpublished", "archived"],"course_level": ["beginner", "intermediate", "advanced", "all_levels"],"course_visibility": ["public", "unlisted", "school", "private"],"enrolment_method": ["open", "invite", "closed"],"enrolment_source": ["self", "teacher", "school", "admin"],"enrolment_status": ["active", "completed", "dropped"],"lesson_block_type": ["heading", "paragraph", "image", "video", "audio", "code", "callout", "activity", "quiz", "resource", "link", "table", "steps", "embed", "divider", "lab"],"lesson_completion_rule": ["mark_complete", "quiz_pass", "assignment_submit"],"meeting_provider": ["manual", "google_meet", "zoom", "jitsi", "teams", "other"],"membership_status": ["pending", "invited", "active", "suspended", "removed"],"question_type": ["multiple_choice", "multiple_select", "true_false", "fill_blank", "short_answer", "essay", "matching", "ordering", "file_upload"],"results_visibility": ["immediate", "after_close", "manual"],"school_role": ["school_admin", "teacher", "student", "guardian"],"school_status": ["pending", "approved", "rejected", "suspended"]
+            "account_status": ["active", "suspended"],"app_role": ["learner", "teacher", "school_admin", "platform_admin", "owner", "guardian"],"content_status": ["draft", "in_review", "published", "unpublished", "archived"],"course_level": ["beginner", "intermediate", "advanced", "all_levels"],"course_visibility": ["public", "unlisted", "school", "private", "class"],"enrolment_method": ["open", "invite", "closed"],"enrolment_source": ["self", "teacher", "school", "admin"],"enrolment_status": ["active", "completed", "dropped"],"lesson_block_type": ["heading", "paragraph", "image", "video", "audio", "code", "callout", "activity", "quiz", "resource", "link", "table", "steps", "embed", "divider", "lab"],"lesson_completion_rule": ["mark_complete", "quiz_pass", "assignment_submit"],"meeting_provider": ["manual", "google_meet", "zoom", "jitsi", "teams", "other"],"membership_status": ["pending", "invited", "active", "suspended", "removed"],"question_type": ["multiple_choice", "multiple_select", "true_false", "fill_blank", "short_answer", "essay", "matching", "ordering", "file_upload"],"results_visibility": ["immediate", "after_close", "manual"],"school_role": ["school_admin", "teacher", "student", "guardian"],"school_status": ["pending", "approved", "rejected", "suspended"]
           }
         }
 } as const

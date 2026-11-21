@@ -1,7 +1,7 @@
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { BookOpen, CalendarCheck, Crown, Megaphone, Presentation, Users, Video } from 'lucide-react';
-import { Badge, EmptyState, LoadingBlock, PageHeader, Tabs } from '@/components/ui';
+import { Badge, EmptyState, LoadingBlock, PageHeader, ProgressBar, Tabs } from '@/components/ui';
 import { supabase, unwrap } from '@/lib/supabase';
 import { fmtDate, fmtDateTime } from '@/lib/dates';
 import { useAuth } from '@/features/authentication/AuthProvider';
@@ -36,11 +36,7 @@ export function ClassRoomPage() {
   const { classId } = useParams();
   const { user } = useAuth();
   const { data: cls, isLoading } = useClassInfo(classId);
-  const courses = useQuery({
-    queryKey: ['class-courses', classId],
-    enabled: Boolean(classId),
-    queryFn: async () => unwrap(await supabase.from('class_courses').select('course:courses(id, title, short_description)').eq('class_id', classId!)) as unknown as { course: { id: string; title: string; short_description: string } | null }[],
-  });
+  const courses = useQuery({ queryKey: ['class-learning', classId], enabled: Boolean(classId), queryFn: async () => unwrap(await supabase.rpc('class_learning', { p_class: classId! })) });
   const attendance = useQuery({
     queryKey: ['my-attendance', classId, user?.id],
     enabled: Boolean(classId && user),
@@ -63,9 +59,15 @@ export function ClassRoomPage() {
         { value: 'room', label: <span className="inline-flex items-center gap-1.5"><Presentation className="h-4 w-4" />Classroom</span>, content: <ClassroomPanel type="class" roomId={cls.id} canModerate={can('moderate_discussion') || can('pin_messages')} canBoard={can('post_board')} canPoll={can('create_polls')} title={cls.name} side={<PulsePrompt classId={cls.id} />} /> },
         { value: 'groups', label: <span className="inline-flex items-center gap-1.5"><Users className="h-4 w-4" />Study groups</span>, content: <ClassGroups classId={cls.id} /> },
         { value: 'live', label: <span className="inline-flex items-center gap-1.5"><Video className="h-4 w-4" />Live classes</span>, content: sessions.data?.length ? <div className="space-y-3">{sessions.data.map((s) => <SessionCard key={s.id} s={s} compact />)}</div> : <EmptyState title="No live classes scheduled" /> },
-        { value: 'courses', label: <span className="inline-flex items-center gap-1.5"><BookOpen className="h-4 w-4" />Subjects</span>, content: courses.data?.length ? (
-          <div className="grid gap-3 sm:grid-cols-2">{courses.data.map((c) => c.course && <Link key={c.course.id} to={`/learn/courses/${c.course.id}`} className="card p-4 hover:border-brand-300"><p className="font-bold">{c.course.title}</p><p className="mt-1 line-clamp-2 text-sm text-ink-500">{c.course.short_description}</p></Link>)}</div>
-        ) : <EmptyState title="No courses assigned yet" /> },
+        { value: 'courses', label: <span className="inline-flex items-center gap-1.5"><BookOpen className="h-4 w-4" />Lessons</span>, content: courses.data?.length ? (
+          <div className="grid gap-3 sm:grid-cols-2">{courses.data.map((c) => (
+            <Link key={c.course_id} to={`/learn/courses/${c.course_id}`} className="card group p-4 transition hover:-translate-y-0.5 hover:border-brand-300">
+              <div className="flex items-center justify-between gap-2"><p className="font-bold group-hover:text-brand-700">{c.title}</p>{c.visibility === 'class' && <Badge tone="green">This class only</Badge>}</div>
+              {c.short_description && <p className="mt-1 line-clamp-2 text-sm text-ink-500">{c.short_description}</p>}
+              <div className="mt-3 flex items-center gap-3"><ProgressBar value={c.my_progress ?? 0} className="flex-1" /><span className="text-xs font-semibold text-ink-500">{Math.round(Number(c.my_progress ?? 0))}% · {c.lessons} lessons</span></div>
+            </Link>
+          ))}</div>
+        ) : <EmptyState icon={<BookOpen className="h-6 w-6" />} title="No lessons yet" description="Your teacher hasn’t added lessons to this class yet." /> },
         { value: 'news', label: 'Announcements', content: <ClassAnnouncements classId={cls.id} /> },
         { value: 'attendance', label: <span className="inline-flex items-center gap-1.5"><CalendarCheck className="h-4 w-4" />My attendance</span>, content: attendance.data?.length ? (
           <div className="card p-5">
