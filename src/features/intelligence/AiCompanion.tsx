@@ -88,7 +88,7 @@ export function AiCompanion() {
           <div className="flex flex-wrap items-center gap-2 border-b border-ink-100 p-3">
             {MODES.map((m) => <button key={m.id} title={m.hint} onClick={() => setMode(m.id)} aria-pressed={mode === m.id} className={cn('inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-semibold', mode === m.id ? 'border-brand-600 bg-brand-600 text-white' : 'border-ink-200 text-ink-600 hover:border-brand-300')}><m.icon className="h-4 w-4" />{m.label}</button>)}
             <div className="ml-auto flex gap-2">
-              <Select value={subject} onChange={(e) => setSubject(e.target.value)} className="w-auto py-1.5 text-sm" aria-label="Subject"><option value="">Any subject</option>{subjects.data?.map((s) => <option key={s.title}>{s.title}</option>)}</Select>
+              <Select value={subject} onChange={(e) => setSubject(e.target.value)} className="w-auto py-1.5 text-sm" aria-label="Subject"><option value="">Any subject</option>{[...new Set(subjects.data?.map((s) => s.title))].map((t) => <option key={t}>{t}</option>)}</Select>
               <Select value={grade} onChange={(e) => setGrade(e.target.value)} className="w-auto py-1.5 text-sm" aria-label="Class level"><option value="">Any level</option>{GRADES.map((g) => <option key={g}>{g}</option>)}</Select>
             </div>
           </div>

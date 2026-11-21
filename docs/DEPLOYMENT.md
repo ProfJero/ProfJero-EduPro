@@ -5,7 +5,7 @@
 | Item | Status |
 |---|---|
 | GitHub | `ProfJero/ProfJero-EduPro`, branch `ccr-b163a389-1cynkq` |
-| Cloudflare Pages | `profjero-edupro`, **Git-connected**: every push to `ccr-b163a389-1cynkq` builds (`npm run build`, output `dist`) and deploys to https://profjero-edupro.pages.dev. Compatibility flag `nodejs_compat` is set. |
+| Cloudflare Pages | `profjero-edupro`, **Git-connected**: the production branch is `main` (other branches build previews); each push builds (`npm run build`, output `dist`) and deploys to https://profjero-edupro.pages.dev. Compatibility flag `nodejs_compat` is set. |
 | API hostname | Worker `profjero-edu-api` → https://profjero-edu-api.profjerodigitalstudio.workers.dev. A small proxy that forwards to the app; the API code itself runs in the Pages worker (`dist/_worker.js`), so it is rebuilt from GitHub on every push. |
 | Supabase | Project **ProfJero EduPro** (`nhfrjayhywzsfhacftdj`, eu-west-1, org "ProfJero Hub"). All migrations up to `20261120000500` are applied. `seed.sql` (test accounts) is **never** applied to production. |
 | Pages variables (plain) | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (publishable key), `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `VITE_API_BASE`, `API_URL`, `APP_URL`, `NODE_VERSION=22` — set for production and preview. |
@@ -25,6 +25,9 @@
 7. **Owner account**: sign up with **profjero947@gmail.com** — owner and platform-admin roles are granted automatically.
 
 After changing variables, use Pages → Deployments → *Retry deployment* (build-time `VITE_` values only change on a new build).
+
+## Capacity
+See CAPACITY.md for the free-tier analysis.
 
 ## Verify
 - `curl https://profjero-edu-api.profjerodigitalstudio.workers.dev/api/health` → `features` shows which integrations are configured.

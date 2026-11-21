@@ -52,7 +52,7 @@ export function AdminHome() {
       </section>
       <Card>
         <CardHeader title="Daily activity" description={`${s.label}: ${sum(series).toLocaleString()} in the last ${days} days`}
-          action={<div className="flex gap-2"><Select value={series} onChange={(e) => setSeries(e.target.value as keyof Day)} className="w-auto py-1.5 text-sm" aria-label="Metric">{SERIES.map((x) => <option key={x.key} value={x.key}>{x.label}</option>)}</Select>
+          action={<div className="flex flex-wrap gap-2"><Select value={series} onChange={(e) => setSeries(e.target.value as keyof Day)} className="w-auto py-1.5 text-sm" aria-label="Metric">{SERIES.map((x) => <option key={x.key} value={x.key}>{x.label}</option>)}</Select>
             <Select value={days} onChange={(e) => setDays(Number(e.target.value))} className="w-auto py-1.5 text-sm" aria-label="Period"><option value={7}>7 days</option><option value={30}>30 days</option><option value={90}>90 days</option></Select></div>} />
         <CardBody>
           {daily.isLoading ? <LoadingBlock rows={2} /> : (

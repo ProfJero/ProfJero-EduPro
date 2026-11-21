@@ -77,7 +77,7 @@ test('teacher journey: create course → module → lesson → publish → revie
   await page.getByRole('button', { name: 'Publish lesson' }).click();
   await toast(page, 'Lesson published');
 
-  await page.getByRole('link', { name: 'Curriculum' }).click();
+  await page.getByRole('link', { name: 'Curriculum', exact: true }).click();
   await page.getByRole('button', { name: 'Submit for review' }).click();
   await toast(page, 'Submitted for review');
 

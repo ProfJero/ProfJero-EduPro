@@ -49,7 +49,7 @@ export function Spinner({ className, label = 'Loading' }: { className?: string; 
 
 export function EmptyState({ icon, title, description, action, className }: { icon?: ReactNode; title: ReactNode; description?: ReactNode; action?: ReactNode; className?: string }) {
   return (
-    <div className={cn('flex flex-col items-center justify-center rounded-2xl border border-dashed border-ink-200 bg-white/60 px-6 py-12 text-center', className)}>
+    <div className={cn('flex flex-col items-center justify-center rounded-2xl border border-dashed border-ink-200 bg-surface/60 px-6 py-12 text-center', className)}>
       {icon && <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-50 text-brand-600">{icon}</div>}
       <h3 className="text-base font-bold text-ink-900">{title}</h3>
       {description && <p className="mt-1 max-w-md text-sm text-ink-500">{description}</p>}

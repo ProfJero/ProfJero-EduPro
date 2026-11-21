@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import Editor, { type OnMount } from '@monaco-editor/react';
+import Editor, { loader, type OnMount } from '@monaco-editor/react';
 import type * as Monaco from 'monaco-editor';
 import {
   CheckCircle2, ChevronDown, Code2, Copy, Download, Expand, ExternalLink, FilePlus2, FileText, FolderOpen, Keyboard, Loader2, Maximize2, Minimize2, Monitor, Play, Save, Settings2, Share2, Smartphone, Square, Tablet, Trash2, Wand2, XCircle,
@@ -58,6 +58,9 @@ export function CodeWorkspace({ initialLang = 'python', initialFiles, tests, tes
   const [outMax, setOutMax] = useState(false);
   const [device, setDevice] = useState<'full' | 'tablet' | 'phone'>('full');
   const outRef = useRef<HTMLDivElement>(null);
+  const [engine, setEngine] = useState<'loading' | 'ready' | 'failed'>('loading');
+  const fallback = engine === 'failed';
+  useEffect(() => { let live = true; loader.init().then(() => live && setEngine('ready'), () => live && setEngine('failed')); return () => { live = false; }; }, []);
   const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<typeof Monaco | null>(null);
   const runRef = useRef<() => void>(() => undefined);
@@ -228,7 +231,18 @@ export function CodeWorkspace({ initialLang = 'python', initialFiles, tests, tes
         {/* Editor + output split */}
         <div className="flex min-h-0 min-w-0 flex-1 flex-col lg:flex-row">
           <div className={cn('min-h-0 min-w-0 flex-1', mobileView === 'output' && 'hidden', 'lg:block', outMax && 'lg:hidden')} style={{ flexBasis: `${split}%` }}>
-            <Editor
+            {fallback ? (
+              <div className="flex h-full flex-col">
+                <p className="bg-sun-50 px-3 py-1.5 text-xs font-semibold text-sun-700">The full code editor couldn’t load (check your connection). You can still write and run code here.</p>
+                <textarea value={current.content} readOnly={readOnly} spellCheck={false} aria-label="Code editor"
+                  onChange={(e) => updateFile(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Tab') { e.preventDefault(); const t = e.currentTarget; const a = t.selectionStart, b = t.selectionEnd; const v = t.value.slice(0, a) + ' '.repeat(settings.tabSize) + t.value.slice(b); updateFile(v); requestAnimationFrame(() => { t.selectionStart = t.selectionEnd = a + settings.tabSize; }); }
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); runRef.current(); }
+                  }}
+                  className="min-h-0 flex-1 resize-none bg-[#0b1222] p-3 font-mono text-[0.95rem] leading-relaxed text-[#e2e8f0] outline-none" style={{ fontSize: settings.fontSize, tabSize: settings.tabSize }} />
+              </div>
+            ) : engine === 'loading' ? <div className="flex h-full items-center justify-center gap-2 text-sm text-ink-500"><Loader2 className="h-4 w-4 animate-spin" />Loading the code editor…</div> : <Editor
               key={`${lang}:${current.name}`}
               height="100%"
               path={`${lang}/${current.name}`}
@@ -246,7 +260,7 @@ export function CodeWorkspace({ initialLang = 'python', initialFiles, tests, tes
                 formatOnPaste: true, smoothScrolling: true, cursorBlinking: 'smooth', renderLineHighlight: 'all', stickyScroll: { enabled: true }, padding: { top: 10 },
                 fontFamily: "'Cascadia Code', 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
               }}
-            />
+            />}
           </div>
           <div role="separator" aria-orientation="vertical" tabIndex={0} aria-label="Resize panels" className={cn('hidden w-1.5 cursor-col-resize bg-ink-100 hover:bg-brand-200', !outMax && 'lg:block')}
             onKeyDown={(e) => { if (e.key === 'ArrowLeft') setSplit((s) => Math.max(30, s - 4)); if (e.key === 'ArrowRight') setSplit((s) => Math.min(80, s + 4)); }}

@@ -67,7 +67,7 @@ export function ResourceStudio() {
       </div>
       <Card><CardBody className="space-y-4">
         <div className="grid gap-4 md:grid-cols-3">
-          <Field label="Subject" required><Select value={f.subject} onChange={(e) => set('subject', e.target.value)}><option value="">Choose…</option>{subjects.data?.map((s) => <option key={s.title}>{s.title}</option>)}<option value="Other">Other</option></Select></Field>
+          <Field label="Subject" required><Select value={f.subject} onChange={(e) => set('subject', e.target.value)}><option value="">Choose…</option>{[...new Set(subjects.data?.map((s) => s.title))].map((t) => <option key={t}>{t}</option>)}<option value="Other">Other</option></Select></Field>
           <Field label="Class / level"><Select value={f.grade} onChange={(e) => set('grade', e.target.value)}>{GRADES.map((g) => <option key={g}>{g}</option>)}</Select></Field>
           {task === 'lesson_plan' && <Field label="Duration (minutes)"><Input type="number" min={20} max={240} value={f.duration} onChange={(e) => set('duration', Number(e.target.value) || 60)} /></Field>}
           {task === 'scheme_of_work' && <Field label="Weeks"><Input type="number" min={4} max={16} value={f.weeks} onChange={(e) => set('weeks', Number(e.target.value) || 12)} /></Field>}

@@ -121,7 +121,7 @@ export function CircuitBuilder() {
                   {part && <>
                     <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={sel === id ? '#fcd34d' : '#e2e8f0'} strokeWidth={3} />
                     {amps > 1e-4 && part.kind !== 'voltmeter' && <line x1={(r!.i >= 0) === (part.kind === 'battery' ? !part.flip : true) ? x1 : x2} y1={(r!.i >= 0) === (part.kind === 'battery' ? !part.flip : true) ? y1 : y2} x2={(r!.i >= 0) === (part.kind === 'battery' ? !part.flip : true) ? x2 : x1} y2={(r!.i >= 0) === (part.kind === 'battery' ? !part.flip : true) ? y2 : y1} className="flow" stroke="#fbbf24" strokeWidth={3} style={{ ['--spd' as string]: `${Math.max(0.25, Math.min(3, 0.4 / Math.max(amps, 0.02)))}s` }} />}
-                    <g transform={`translate(${mx} ${my}) rotate(${vert ? 90 : 0})`}><Symbol part={part} r={r} /></g>
+                    <g transform={`translate(${mx} ${my}) rotate(${vert ? 90 : 0})`}><Symbol part={part} r={r} vert={vert} /></g>
                   </>}
                 </g>
               );
@@ -163,13 +163,14 @@ export function CircuitBuilder() {
   );
 }
 
-function Symbol({ part, r }: { part: Part; r?: { i: number; dv: number; p: number } }) {
+function Symbol({ part, r, vert }: { part: Part; r?: { i: number; dv: number; p: number }; vert?: boolean }) {
+  const label = (y: number, text: string, fill: string) => <text transform={vert ? `rotate(-90) translate(${y + 6} 0)` : undefined} y={vert ? 4 : y} x={vert ? 0 : 0} textAnchor={vert ? 'start' : 'middle'} fontSize={10} fill={fill}>{text}</text>;
   const bg = '#0f2e26';
   switch (part.kind) {
     case 'wire': return null;
     case 'battery': return (<g><rect x={-14} y={-16} width={28} height={32} fill={bg} /><line x1={-5} y1={-14} x2={-5} y2={14} stroke="#e2e8f0" strokeWidth={3} /><line x1={5} y1={-8} x2={5} y2={8} stroke="#e2e8f0" strokeWidth={5} />
-      <text x={part.flip ? 12 : -14} y={-18} fontSize={11} fill="#fca5a5" fontWeight={700}>+</text><text y={30} textAnchor="middle" fontSize={10} fill="#a7f3d0" transform="rotate(0)">{part.value}V</text></g>);
-    case 'resistor': return (<g><rect x={-16} y={-7} width={32} height={14} rx={2} fill={bg} stroke="#6ee7b7" strokeWidth={2.5} /><text y={24} textAnchor="middle" fontSize={10} fill="#a7f3d0">{part.value}Ω</text></g>);
+      <text x={part.flip ? 12 : -14} y={-18} fontSize={11} fill="#fca5a5" fontWeight={700}>+</text>{label(22, `${part.value}V`, '#a7f3d0')}</g>);
+    case 'resistor': return (<g><rect x={-16} y={-7} width={32} height={14} rx={2} fill={bg} stroke="#6ee7b7" strokeWidth={2.5} />{label(16, `${part.value}Ω`, '#a7f3d0')}</g>);
     case 'bulb': { const glow = Math.min(1, (r?.p ?? 0) / 3); return (<g>{glow > 0.02 && <circle r={22} fill="#fde047" opacity={0.15 + glow * 0.55} />}<circle r={11} fill={glow > 0.02 ? `rgba(253,224,71,${0.3 + glow * 0.7})` : bg} stroke="#e2e8f0" strokeWidth={2.5} /><path d="M-7 -7 L7 7 M7 -7 L-7 7" stroke="#e2e8f0" strokeWidth={2} /></g>); }
     case 'switch': return (<g><rect x={-15} y={-14} width={30} height={20} fill={bg} /><circle cx={-12} cy={0} r={3} fill="#e2e8f0" /><circle cx={12} cy={0} r={3} fill="#e2e8f0" /><line x1={-12} y1={0} x2={part.on ? 12 : 9} y2={part.on ? 0 : -12} stroke="#e2e8f0" strokeWidth={3} /></g>);
     case 'ammeter': case 'voltmeter': return (<g><circle r={13} fill={bg} stroke={part.kind === 'ammeter' ? '#93c5fd' : '#c4b5fd'} strokeWidth={2.5} /><text y={4} textAnchor="middle" fontSize={12} fontWeight={800} fill={part.kind === 'ammeter' ? '#93c5fd' : '#c4b5fd'}>{part.kind === 'ammeter' ? 'A' : 'V'}</text></g>);

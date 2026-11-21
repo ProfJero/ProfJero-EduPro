@@ -44,5 +44,15 @@ Legend: ✅ implemented and tested · 🟡 implemented, needs external credentia
 - **Live**: Zoom and Google Meet meeting creation (OAuth), in-app Jitsi classroom.
 - **Push notifications** that arrive when the app is closed (opt-in prompt).
 
+## Round 3
+- **Class-only learning**: courses can be “My class(es) only” — only members of the assigned classes can open lessons, notes, quizzes and resources; joining grants access, leaving removes it. Class owners publish class courses without review; making them public still needs review.
+- **Challenge Studio**: teachers create Quiz Rush, Word Builder, Math Sprint, Typing Race or Code Quest challenges for one class or for everyone, with class leaderboards and notifications.
+- **Discussions**: open discussions across classes and schools, class discussions any member can start, group discussions started by group leaders; search, subjects, locking, reply notifications.
+- **Calendar schedules**: teachers schedule lessons, tests, revision, trips and deadlines (with weekly repeats); members are notified, reminded and can export to their phone calendar.
+- **Curriculum Library**: 2,222 official MoE/NaCCA documents (learner materials and teacher manuals, Basic–SHS) and the SHS curriculum structure (42 subjects: strands, sub-strands, content standards and learning outcomes, verbatim) used by the AI.
+- **EduLab practicals**: free-form Circuit Builder (nodal analysis), flame tests (with mystery salts), tests for gases, rates of reaction, indicators & household pH (incl. sobolo), Hooke’s law — each with a results table, graph and CSV export. Math Lab adds transformations, the unit circle and sequences & series.
+- **Owner console**: daily operations dashboard, on-demand System monitor with free-tier meters, crash reports from browsers, housekeeping, plan prices, feature switches and a banner for everyone.
+- **Polish**: coloured sidebar, animated floating mobile navigation, page transitions, automatic dark-mode contrast correction, error boundary, Code Lab offline fallback editor, prominent “Allow notifications” flow with test notifications.
+
 ## Not implemented (planned)
 ⬜ Email notifications (in-app and push only) · ⬜ Learning-path UI (tables exist) · ⬜ Course prerequisites editor UI (enforced in the database) · ⬜ Proctoring · ⬜ Payment gateway · ⬜ Official NaCCA strand/indicator data (import tool ready; the documents were not reachable from the build environment, so nothing was invented).

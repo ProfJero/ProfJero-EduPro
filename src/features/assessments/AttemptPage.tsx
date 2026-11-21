@@ -119,7 +119,7 @@ function TakeAttempt({ payload }: { payload: AttemptPayload }) {
   const unanswered = questions.filter((qq) => !answered(qq)).length;
   return (
     <div className="mx-auto max-w-5xl">
-      <div className="sticky top-16 z-10 -mx-4 mb-6 border-b border-ink-200 bg-white/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-2xl sm:border">
+      <div className="sticky top-16 z-10 -mx-4 mb-6 border-b border-ink-200 bg-surface/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-2xl sm:border">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0"><p className="truncate font-bold text-ink-900">{assessment.title}</p><p className="text-xs text-ink-500">Attempt {attempt.attempt_no} · Question {i + 1} of {questions.length}</p></div>
           <div className="flex items-center gap-3">

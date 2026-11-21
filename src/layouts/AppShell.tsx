@@ -417,7 +417,7 @@ function MobileNav({ items, onMore }: { items: NavItem[]; onMore: () => void }) 
         {items.map((i, k) => (
           <NavLink key={i.to} to={i.to} end={i.end} className="relative z-10 flex flex-col items-center gap-0.5 rounded-2xl py-1.5 text-[0.66rem] font-bold transition active:scale-90">
             <i.icon className={cn('h-5 w-5 transition-all duration-300', k === active ? '-translate-y-0.5 scale-110 text-white' : 'text-ink-500')} />
-            <span className={cn('max-w-full truncate px-1 transition-colors', k === active ? 'text-white' : 'text-ink-500')}>{i.label.replace('My ', '')}</span>
+            <span className={cn('max-w-full truncate px-1 transition-colors', k === active ? 'text-white' : 'text-ink-500')}>{i.label.replace('My ', '').replace('AI Companion', 'Ask AI').replace('Resource Studio', 'Studio').replace('Plans, prices & subscriptions', 'Plans').replace('Owner dashboard', 'Home').replace('System monitor', 'Monitor').replace('Users & roles', 'Users')}</span>
           </NavLink>
         ))}
         <button onClick={onMore} className="relative z-10 flex flex-col items-center gap-0.5 rounded-2xl py-1.5 text-[0.66rem] font-bold text-ink-500 transition active:scale-90"><MenuIcon className="h-5 w-5" />More</button>

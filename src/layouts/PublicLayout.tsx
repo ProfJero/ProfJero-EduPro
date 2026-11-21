@@ -22,7 +22,7 @@ export function PublicLayout() {
     <div className="flex min-h-screen flex-col bg-surface">
       <a href="#main" className="skip-link">Skip to content</a>
       <ConnectionBanner />
-      <header className="sticky top-0 z-40 border-b border-ink-100 bg-white/90 backdrop-blur">
+      <header className="sticky top-0 z-40 border-b border-ink-100 bg-surface/90 backdrop-blur">
         <div className="container-page flex h-16 items-center justify-between gap-4">
           <Logo />
           <nav aria-label="Main" className="hidden items-center gap-1 lg:flex">

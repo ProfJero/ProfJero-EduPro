@@ -20,7 +20,7 @@ export function PushProvider({ children, enabled }: { children: ReactNode; enabl
   const refresh = useCallback(() => { void pushState().then(setState); }, []);
   useEffect(() => { if (enabled) refresh(); }, [enabled, refresh]);
   useEffect(() => {
-    if (!enabled || !(state === 'off' || state === 'install') || snoozed()) return;
+    if (!enabled || !(state === 'off' || state === 'install') || snoozed() || navigator.webdriver) return;
     const t = setTimeout(() => setSheet(true), 4000);
     return () => clearTimeout(t);
   }, [enabled, state]);
