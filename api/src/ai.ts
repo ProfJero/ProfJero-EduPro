@@ -9,7 +9,7 @@ import OpenAI from 'openai';
 import type { Env } from './env';
 import { HttpError, UUID, body, json, rest, rpc, type User } from './util';
 
-const MODEL = 'gemini-2.5-flash';
+const MODEL = 'gemini-3.5-flash-lite';
 const DEFAULT_BASE = 'https://generativelanguage.googleapis.com/v1beta/openai/';
 
 type Item = { id: string; code: string | null; title: string; kind: string; description: string | null; grade_level: string | null; framework: string; path: string | null };
