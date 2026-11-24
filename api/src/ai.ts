@@ -21,6 +21,20 @@ const client = (env: Env) =>
   new OpenAI({
     apiKey: env.GEMINI_API_KEY!,
     baseURL: env.GEMINI_BASE_URL || DEFAULT_BASE,
+    fetch: async (url, init) => {
+      // Google Gemini's OpenAI-compatible endpoint rejects unknown fields like `store`.
+      // The OpenAI SDK injects `store: false` by default, so we strip it out here.
+      if (init?.body && typeof init.body === 'string') {
+        try {
+          const bodyObj = JSON.parse(init.body);
+          delete bodyObj.store;
+          init.body = JSON.stringify(bodyObj);
+        } catch {
+          // If parsing fails, let the SDK handle it (or fail naturally).
+        }
+      }
+      return fetch(url, init);
+    },
   });
 
 async function consume(env: Env, user: User) {
@@ -147,7 +161,11 @@ export async function chat(req: Request, env: Env, user: User) {
       await rest(env, user.token, `ai_conversations?id=eq.${convId}`, { method: 'PATCH', body: JSON.stringify({ updated_at: new Date().toISOString() }) });
       await send({ type: 'done' });
     } catch (e) {
-      console.error('ai chat', e);
+      console.error('ai chat error:', e);
+      if (e instanceof OpenAI.APIError) {
+        const bodyText = await e.response?.text().catch(() => 'no body');
+        console.error('AI API Error Status:', e.status, 'Body:', bodyText);
+      }
       const status = e instanceof OpenAI.APIError ? e.status : 0;
       await send({ type: 'error', message: status === 429 || status === 529 ? 'The AI Companion is very busy. Please try again in a minute.' : 'The AI Companion had a problem answering. Please try again.' });
     } finally {
