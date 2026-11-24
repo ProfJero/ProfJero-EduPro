@@ -21,20 +21,6 @@ const client = (env: Env) =>
   new OpenAI({
     apiKey: env.GEMINI_API_KEY!,
     baseURL: env.GEMINI_BASE_URL || DEFAULT_BASE,
-    fetch: async (url, init) => {
-      // Google Gemini's OpenAI-compatible endpoint rejects unknown fields like `store`.
-      // The OpenAI SDK injects `store: false` by default, so we strip it out here.
-      if (init?.body && typeof init.body === 'string') {
-        try {
-          const bodyObj = JSON.parse(init.body);
-          delete bodyObj.store;
-          init.body = JSON.stringify(bodyObj);
-        } catch {
-          // If parsing fails, let the SDK handle it (or fail naturally).
-        }
-      }
-      return fetch(url, init);
-    },
   });
 
 async function consume(env: Env, user: User) {
