@@ -1,6 +1,6 @@
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { BookOpen, CalendarCheck, Crown, Megaphone, Presentation, Users, Video } from 'lucide-react';
+import { BookOpen, CalendarCheck, ClipboardList, Crown, Megaphone, Presentation, Users, Video } from 'lucide-react';
 import { Badge, EmptyState, LoadingBlock, PageHeader, ProgressBar, Tabs } from '@/components/ui';
 import { supabase, unwrap } from '@/lib/supabase';
 import { fmtDate, fmtDateTime } from '@/lib/dates';
@@ -11,13 +11,16 @@ import { AnnouncementComposer } from '@/features/notifications/Announcements';
 import { PulsePrompt } from '@/features/intelligence/ClassPulse';
 import { ClassroomPanel } from './ClassroomPanel';
 import { ClassGroups, ClassProgress, JoinRequests, type ClassInfo } from './ClassManage';
+import { GroupManager } from './GroupManager';
+import { ClassRoster, SectionPicker } from './Roster';
+import { MyScores } from '@/features/scores/ScoreSheets';
 import { RollCall } from './TeacherClass';
 
 export function useClassInfo(classId?: string) {
   return useQuery({
     queryKey: ['class', classId],
     enabled: Boolean(classId),
-    queryFn: async () => unwrap(await supabase.from('school_classes').select('id, name, stream, level, description, room_label, color, school_id, owner_id, subject, join_code, join_enabled, allow_guests, join_requires_approval, academic_year_id, school:schools(name)').eq('id', classId!).maybeSingle()) as unknown as ClassInfo | null,
+    queryFn: async () => unwrap(await supabase.from('school_classes').select('id, name, stream, level, description, room_label, color, school_id, owner_id, subject, join_code, join_enabled, allow_guests, join_requires_approval, academic_year_id, ask_section, school:schools(name)').eq('id', classId!).maybeSingle()) as unknown as ClassInfo | null,
   });
 }
 
@@ -55,9 +58,11 @@ export function ClassRoomPage() {
     <div className="space-y-6">
       <PageHeader back={{ to: '/learn/classes', label: 'Classes' }} eyebrow={cls.school?.name ?? cls.subject ?? 'Class'} title={`${cls.name}${cls.stream ? ` · ${cls.stream}` : ''}`} description={cls.description ?? cls.room_label ?? undefined}
         actions={leader.data ? <Badge tone="amber" icon={<Crown className="h-3.5 w-3.5" />}>{leader.data.title}</Badge> : undefined} />
+      <SectionPicker classId={cls.id} ask={cls.ask_section} />
       <Tabs tabs={[
         { value: 'room', label: <span className="inline-flex items-center gap-1.5"><Presentation className="h-4 w-4" />Classroom</span>, content: <ClassroomPanel type="class" roomId={cls.id} canModerate={can('moderate_discussion') || can('pin_messages')} canBoard={can('post_board')} canPoll={can('create_polls')} title={cls.name} side={<PulsePrompt classId={cls.id} />} /> },
-        { value: 'groups', label: <span className="inline-flex items-center gap-1.5"><Users className="h-4 w-4" />Study groups</span>, content: <ClassGroups classId={cls.id} /> },
+        { value: 'groups', label: <span className="inline-flex items-center gap-1.5"><Users className="h-4 w-4" />Study groups</span>, content: can('manage_groups') ? <GroupManager classId={cls.id} isTeacher={false} /> : <ClassGroups classId={cls.id} /> },
+        { value: 'scores', label: <span className="inline-flex items-center gap-1.5"><ClipboardList className="h-4 w-4" />My scores</span>, content: <MyScores classId={cls.id} /> },
         { value: 'live', label: <span className="inline-flex items-center gap-1.5"><Video className="h-4 w-4" />Live classes</span>, content: sessions.data?.length ? <div className="space-y-3">{sessions.data.map((s) => <SessionCard key={s.id} s={s} compact />)}</div> : <EmptyState title="No live classes scheduled" /> },
         { value: 'courses', label: <span className="inline-flex items-center gap-1.5"><BookOpen className="h-4 w-4" />Lessons</span>, content: courses.data?.length ? (
           <div className="grid gap-3 sm:grid-cols-2">{courses.data.map((c) => (
@@ -83,6 +88,7 @@ export function ClassRoomPage() {
             {can('take_attendance') && <RollCall classId={cls.id} />}
             {can('post_announcements') && <AnnouncementComposer scope="class" classId={cls.id} />}
             {can('view_progress') && <ClassProgress classId={cls.id} />}
+            {(can('take_attendance') || can('view_progress') || can('manage_groups')) && <ClassRoster classId={cls.id} className={cls.name} canEdit={false} />}
             {!['approve_join_requests', 'take_attendance', 'post_announcements', 'view_progress'].some(can) && <EmptyState icon={<Crown className="h-6 w-6" />} title={leader.data.title} description="Your leadership tools for the board, discussion and polls are on the Classroom tab." />}
           </div>
         ) }] : []),

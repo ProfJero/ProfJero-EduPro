@@ -45,6 +45,7 @@ function navFor(ws: Workspace): NavGroup[] {
           { to: '/learn/grades', label: 'Grades', icon: Table2 },
           { to: '/learn/resources', label: 'Resources & Offline', icon: BookMarked },
           { to: '/curriculum', label: 'Curriculum Library', icon: Library },
+          { to: '/learn/scores', label: 'My scores', icon: ClipboardList },
           { to: '/learn/certificates', label: 'Certificates', icon: Award },
         ] },
         { label: 'EduLab', tone: 'lab', items: [

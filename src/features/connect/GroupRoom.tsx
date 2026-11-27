@@ -7,6 +7,7 @@ import { supabase, unwrap } from '@/lib/supabase';
 import { errorMessage } from '@/lib/utils';
 import { useAuth } from '@/features/authentication/AuthProvider';
 import { ClassroomPanel, useRoomMembers } from '@/features/classroom/ClassroomPanel';
+import { GroupLive } from './GroupLive';
 
 export function GroupRoom() {
   const { groupId } = useParams();
@@ -31,15 +32,18 @@ export function GroupRoom() {
   if (g.error || !g.data) return <ErrorState error={g.error ?? new Error('Group not found')} />;
   const grp = g.data;
   const me = grp.members.find((m) => m.user_id === user?.id);
-  const isLeader = me?.role === 'leader' || grp.created_by === user?.id;
   const names = new Map((scopeMembers.data ?? []).map((m) => [m.user_id, m]));
+  const isLeader = me?.role === 'leader' || grp.created_by === user?.id || names.get(user?.id ?? '')?.member_role === 'teacher';
   const candidates = (scopeMembers.data ?? []).filter((m) => !grp.members.some((x) => x.user_id === m.user_id));
   return (
     <div className="space-y-6">
       <PageHeader eyebrow={`Study group · ${grp.cls?.name ?? grp.course?.title ?? ''}`} title={grp.name} description={grp.topic ? `Topic: ${grp.topic}` : grp.description ?? undefined} back={{ to: '/connect', label: 'EduConnect' }}
         actions={me ? <Button variant="ghost" leftIcon={<LogOut className="h-4 w-4" />} onClick={() => leave.mutate(user!.id)}>Leave group</Button> : grp.visibility === 'open' ? <Button onClick={() => join.mutate(undefined)} loading={join.isPending}>Join group</Button> : undefined} />
+      {!me && grp.class_id && <p className="text-sm text-ink-500">You can be in one group per class. To join this one, leave your current group first.</p>}
       <ClassroomPanel type="group" roomId={grp.id} canModerate={isLeader} title={grp.name}
         side={(
+          <div className="space-y-4">
+          {(me || isLeader) && <GroupLive groupId={grp.id} groupName={grp.name} canManage={isLeader} />}
           <Card>
             <CardHeader title="Members" description={`${grp.members.length} of ${grp.max_members}`} />
             <CardBody className="space-y-3">
@@ -58,6 +62,7 @@ export function GroupRoom() {
               )}
             </CardBody>
           </Card>
+          </div>
         )} />
     </div>
   );

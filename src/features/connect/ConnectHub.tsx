@@ -101,7 +101,7 @@ function GroupGrid({ groups }: { groups: GroupRow[] }) {
   );
 }
 
-export function CreateGroupDialog({ open, onOpenChange, defaultClass, defaultCourse }: { open: boolean; onOpenChange: (o: boolean) => void; defaultClass?: string; defaultCourse?: string }) {
+export function CreateGroupDialog({ open, onOpenChange, defaultClass, defaultCourse, stay, onCreated }: { open: boolean; onOpenChange: (o: boolean) => void; defaultClass?: string; defaultCourse?: string; stay?: boolean; onCreated?: () => void }) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const toast = useToast();
@@ -118,7 +118,7 @@ export function CreateGroupDialog({ open, onOpenChange, defaultClass, defaultCou
       const [kind, id] = scope.split(':');
       return unwrap(await supabase.from('study_groups').insert({ name: name.trim(), topic: topic.trim() || null, description: description.trim() || null, visibility, max_members: max, created_by: user!.id, class_id: kind === 'class' ? id : null, course_id: kind === 'course' ? id : null }).select('id').single());
     },
-    onSuccess: (g) => { onOpenChange(false); void qc.invalidateQueries({ queryKey: ['study-groups'] }); nav(`/connect/groups/${g.id}`); },
+    onSuccess: (g) => { onOpenChange(false); setName(''); setTopic(''); setDescription(''); void qc.invalidateQueries({ queryKey: ['study-groups'] }); onCreated?.(); if (stay) toast.success('Group created', 'Add members from the list.'); else nav(`/connect/groups/${g.id}`); },
     onError: (e) => toast.error('Could not create the group', errorMessage(e)),
   });
   return (

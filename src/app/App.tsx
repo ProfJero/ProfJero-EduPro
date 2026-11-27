@@ -63,6 +63,7 @@ const Explore = L(() => import('@/features/learning/Explore'), 'Explore');
 const CourseHome = L(() => import('@/features/learning/CourseHome'), 'CourseHome');
 const LessonPlayer = L(() => import('@/features/learning/LessonPlayer'), 'LessonPlayer');
 const LearnerClasses = L(() => import('@/features/classroom/LearnerClasses'), 'LearnerClasses');
+const MyScoresPage = L(() => import('@/features/scores/ScoreSheets'), 'MyScoresPage');
 const ClassRoom = L(() => import('@/features/classroom/ClassRoom'), 'ClassRoomPage');
 const LiveSession = L(() => import('@/features/live/LiveSessionPage'), 'LiveSessionPage');
 const LearnerAssessments = L(() => import('@/features/assessments/LearnerAssessments'), 'LearnerAssessments');
@@ -229,6 +230,7 @@ export function App() {
                     <Route path="courses/:courseId" element={<CourseHome />} />
                     <Route path="courses/:courseId/lessons/:lessonId" element={<LessonPlayer />} />
                     <Route path="classes" element={<LearnerClasses />} />
+                    <Route path="scores" element={<MyScoresPage />} />
                     <Route path="classes/:classId" element={<ClassRoom />} />
                     <Route path="live/:sessionId" element={<LiveSession />} />
                     <Route path="assessments" element={<LearnerAssessments />} />

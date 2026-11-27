@@ -12,7 +12,7 @@ import { useRoomMembers } from './ClassroomPanel';
 import { classColor } from './LearnerClasses';
 
 export type ClassInfo = { id: string; name: string; stream: string | null; level: string | null; description: string | null; room_label: string | null; color: string; school_id: string | null; owner_id: string | null; subject: string | null;
-  join_code: string | null; join_enabled: boolean; allow_guests: boolean; join_requires_approval: boolean; academic_year_id: string | null; school: { name: string } | null };
+  join_code: string | null; join_enabled: boolean; allow_guests: boolean; join_requires_approval: boolean; academic_year_id: string | null; ask_section: boolean; school: { name: string } | null };
 
 export function CreateClassDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const { user } = useAuth();
@@ -160,13 +160,17 @@ export function LeadersPanel({ classId }: { classId: string }) {
 }
 
 export function ClassGroups({ classId }: { classId: string }) {
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
-  const groups = useQuery({ queryKey: ['class-groups', classId], queryFn: async () => unwrap(await supabase.from('study_groups').select('id, name, topic, visibility, max_members, members:study_group_members(user_id)').eq('class_id', classId).order('created_at')) as unknown as { id: string; name: string; topic: string | null; visibility: string; max_members: number; members: { user_id: string }[] }[] });
+  const groups = useQuery({ queryKey: ['class-groups', classId], queryFn: async () => unwrap(await supabase.from('study_groups').select('id, name, topic, visibility, max_members, members:study_group_members(user_id, role)').eq('class_id', classId).order('created_at')) as unknown as { id: string; name: string; topic: string | null; visibility: string; max_members: number; members: { user_id: string; role: string }[] }[] });
+  const mine = groups.data?.find((g) => g.members.some((m) => m.user_id === user?.id));
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3"><p className="text-sm text-ink-600">Small groups for peer learning, projects and revision. Each group gets its own board, discussion and polls.</p><Button leftIcon={<Plus className="h-4 w-4" />} onClick={() => setOpen(true)}>New group</Button></div>
+      <div className="flex flex-wrap items-center justify-between gap-3"><p className="max-w-2xl text-sm text-ink-600">Small groups for peer learning, projects and revision — each with its own chat, board, polls and group live classes. You can be in <b>one group</b> in this class; leave it to join another.</p>
+        {!mine && <Button leftIcon={<Plus className="h-4 w-4" />} onClick={() => setOpen(true)}>New group</Button>}</div>
+      {mine && <Alert tone="success">You are in <Link to={`/connect/groups/${mine.id}`} className="font-bold underline">{mine.name}</Link>.</Alert>}
       {groups.data?.length ? <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{groups.data.map((g) => (
-        <Link key={g.id} to={`/connect/groups/${g.id}`} className="card flex items-center gap-3 p-4 hover:border-brand-300"><Users className="h-5 w-5 text-growth-600" /><span className="min-w-0 flex-1"><span className="block truncate font-bold">{g.name}</span><span className="text-xs text-ink-500">{g.members.length}/{g.max_members} members{g.topic ? ` · ${g.topic}` : ''}</span></span>{g.visibility === 'invite' && <Badge>Invite only</Badge>}</Link>
+        <Link key={g.id} to={`/connect/groups/${g.id}`} className={cn('card flex items-center gap-3 p-4 hover:border-brand-300', mine?.id === g.id && 'border-growth-300 ring-1 ring-growth-200')}><Users className="h-5 w-5 text-growth-600" /><span className="min-w-0 flex-1"><span className="block truncate font-bold">{g.name}</span><span className="text-xs text-ink-500">{g.members.length}/{g.max_members} members{g.topic ? ` · ${g.topic}` : ''}</span></span>{mine?.id === g.id ? <Badge tone="green">Your group</Badge> : g.visibility === 'invite' && <Badge>Invite only</Badge>}</Link>
       ))}</div> : <EmptyState icon={<Users className="h-7 w-7" />} title="No study groups yet" />}
       <CreateGroupDialog open={open} onOpenChange={setOpen} defaultClass={classId} />
     </div>

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { BarChart3, BookOpen, Plus, CalendarCheck, Check, Crown, KeyRound, Presentation, Users, UsersRound, Video } from 'lucide-react';
+import { BarChart3, BookOpen, Plus, CalendarCheck, Check, ClipboardList, Crown, KeyRound, Presentation, Users, UsersRound, Video } from 'lucide-react';
 import { Avatar, Badge, Button, ButtonLink, Card, CardBody, CardHeader, EmptyState, Input, LoadingBlock, PageHeader, Select, Tabs, useToast } from '@/components/ui';
 import { supabase, unwrap } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
@@ -12,7 +12,10 @@ import { SessionCard } from '@/features/live/SessionCard';
 import { AnnouncementComposer, AnnouncementList } from '@/features/notifications/Announcements';
 import { ClassroomPanel, useRoomMembers } from './ClassroomPanel';
 import { useClassInfo } from './ClassRoom';
-import { ClassGroups, ClassProgress, JoinRequests, JoinSettings, LeadersPanel } from './ClassManage';
+import { ClassProgress, JoinRequests, JoinSettings, LeadersPanel } from './ClassManage';
+import { ClassRoster, SectionsManager, matchesSearch, useRoster, useSections } from './Roster';
+import { GroupManager } from './GroupManager';
+import { ScoreSheets } from '@/features/scores/ScoreSheets';
 
 export function TeacherClassPage() {
   const { classId } = useParams();
@@ -30,10 +33,11 @@ export function TeacherClassPage() {
       <Tabs value={params.get('tab') ?? 'room'} onValueChange={(v) => setParams((p) => { p.set('tab', v); return p; }, { replace: true })} tabs={[
         { value: 'room', label: <span className="inline-flex items-center gap-1.5"><Presentation className="h-4 w-4" />Classroom</span>, content: <ClassroomPanel type="class" roomId={cls.id} canModerate title={cls.name} /> },
         { value: 'roll', label: <span className="inline-flex items-center gap-1.5"><CalendarCheck className="h-4 w-4" />Roll call</span>, content: <RollCall classId={cls.id} /> },
-        { value: 'students', label: <span className="inline-flex items-center gap-1.5"><Users className="h-4 w-4" />Students</span>, content: <Roster classId={cls.id} /> },
+        { value: 'students', label: <span className="inline-flex items-center gap-1.5"><Users className="h-4 w-4" />Students</span>, content: <div className="space-y-5"><ClassRoster classId={cls.id} className={cls.name} canEdit /><SectionsManager classId={cls.id} askSection={cls.ask_section} /></div> },
+        { value: 'scores', label: <span className="inline-flex items-center gap-1.5"><ClipboardList className="h-4 w-4" />Scores</span>, content: <ScoreSheets classId={cls.id} className={cls.name} /> },
         ...(independent ? [{ value: 'join', label: <span className="inline-flex items-center gap-1.5"><KeyRound className="h-4 w-4" />Join & invite</span>, content: <JoinSettings cls={cls} /> }] : []),
         { value: 'leaders', label: <span className="inline-flex items-center gap-1.5"><Crown className="h-4 w-4" />Leaders</span>, content: <LeadersPanel classId={cls.id} /> },
-        { value: 'groups', label: <span className="inline-flex items-center gap-1.5"><UsersRound className="h-4 w-4" />Groups</span>, content: <ClassGroups classId={cls.id} /> },
+        { value: 'groups', label: <span className="inline-flex items-center gap-1.5"><UsersRound className="h-4 w-4" />Groups</span>, content: <GroupManager classId={cls.id} canManage isTeacher /> },
         { value: 'progress', label: <span className="inline-flex items-center gap-1.5"><BarChart3 className="h-4 w-4" />Progress</span>, content: <ClassProgress classId={cls.id} /> },
         { value: 'courses', label: <span className="inline-flex items-center gap-1.5"><BookOpen className="h-4 w-4" />Lessons & materials</span>, content: <ClassCourses classId={cls.id} /> },
         { value: 'live', label: 'Live classes', content: sessions.data?.length ? <div className="space-y-3">{sessions.data.map((s) => <SessionCard key={s.id} s={s} compact />)}</div> : <EmptyState title="No live classes scheduled" action={<ButtonLink to={`/teach/live?class=${cls.id}`}>Schedule one</ButtonLink>} /> },
@@ -59,7 +63,13 @@ export function RollCall({ classId }: { classId: string }) {
   const today = new Date().toISOString().slice(0, 10);
   const [date, setDate] = useState(today);
   const members = useRoomMembers('class', classId);
-  const students = (members.data ?? []).filter((m) => m.member_role === 'learner');
+  const roster = useRoster(classId);
+  const sections = useSections(classId);
+  const [q, setQ] = useState('');
+  const [section, setSection] = useState('all');
+  const sectionOf = useMemo(() => new Map((roster.data ?? []).map((r) => [r.user_id, r.section_id])), [roster.data]);
+  const allStudents = (members.data ?? []).filter((m) => m.member_role === 'learner').sort((a, b) => a.name.localeCompare(b.name));
+  const students = allStudents.filter((m) => matchesSearch({ full_name: m.name }, q) && (section === 'all' || (section === 'none' ? !sectionOf.get(m.user_id) : sectionOf.get(m.user_id) === section)));
   const existing = useQuery({ queryKey: ['attendance', classId, date], queryFn: async () => unwrap(await supabase.from('class_attendance').select('user_id, status, note').eq('class_id', classId).eq('attendance_date', date)) });
   const [marks, setMarks] = useState<Record<string, Status>>({});
   const [busy, setBusy] = useState(false);
@@ -70,8 +80,13 @@ export function RollCall({ classId }: { classId: string }) {
     <Card>
       <CardHeader title="Roll call" description="Mark the register for the day. Learners can see their own attendance." action={<Input type="date" value={date} max={today} onChange={(e) => setDate(e.target.value)} aria-label="Date" className="w-44" />} />
       <CardBody className="space-y-4">
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Find a student…" aria-label="Find a student" />
+          {(sections.data?.length ?? 0) > 0 && <Select value={section} onChange={(e) => setSection(e.target.value)} aria-label="School class" className="sm:w-52"><option value="all">All school classes</option>{sections.data!.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}<option value="none">Not chosen</option></Select>}
+        </div>
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant="secondary" onClick={() => setMarks(Object.fromEntries(students.map((s) => [s.user_id, marks[s.user_id] ?? 'present'])))} leftIcon={<Check className="h-4 w-4" />}>Mark everyone else present</Button>
+          <Badge tone="brand">{students.length} of {allStudents.length} students</Badge>
+          <Button size="sm" variant="secondary" onClick={() => setMarks((m) => ({ ...m, ...Object.fromEntries(students.map((s) => [s.user_id, m[s.user_id] ?? 'present'])) }))} leftIcon={<Check className="h-4 w-4" />}>Mark everyone shown present</Button>
           {counts.map((c) => <Badge key={c.v}>{c.label}: {c.n}</Badge>)}
         </div>
         {students.length ? (
@@ -87,8 +102,8 @@ export function RollCall({ classId }: { classId: string }) {
               </div>
             </li>
           ))}</ul>
-        ) : <EmptyState title="No students in this class yet" />}
-        {students.length > 0 && <Button loading={busy} disabled={!Object.keys(marks).length} onClick={async () => {
+        ) : <EmptyState title={allStudents.length ? 'No students match' : 'No students in this class yet'} />}
+        {allStudents.length > 0 && <Button loading={busy} disabled={!Object.keys(marks).length} onClick={async () => {
           setBusy(true);
           const rows = Object.entries(marks).map(([user_id, status]) => ({ class_id: classId, user_id, attendance_date: date, status, marked_by: user!.id }));
           const { error } = await supabase.from('class_attendance').upsert(rows, { onConflict: 'class_id,user_id,attendance_date' });
@@ -98,16 +113,6 @@ export function RollCall({ classId }: { classId: string }) {
       </CardBody>
     </Card>
   );
-}
-
-function Roster({ classId }: { classId: string }) {
-  const { data, isLoading } = useRoomMembers('class', classId);
-  if (isLoading) return <LoadingBlock />;
-  return data?.length ? (
-    <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{data.map((m) => (
-      <li key={m.user_id} className="card flex items-center gap-3 p-3"><Avatar name={m.name} src={m.avatar_url} size={40} /><span className="min-w-0 flex-1 truncate font-semibold">{m.name}</span>{m.member_role === 'teacher' && <Badge tone="green">Teacher</Badge>}</li>
-    ))}</ul>
-  ) : <EmptyState title="No one in this class yet" />;
 }
 
 function ClassCourses({ classId }: { classId: string }) {
