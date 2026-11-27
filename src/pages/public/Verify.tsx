@@ -18,7 +18,7 @@ export function Verify() {
     queryFn: async () => {
       const { data, error } = await supabase.rpc('verify_certificate', { p_serial: serial! });
       if (error) throw error;
-      return data as Cert | null;
+      return data as (Cert & { hidden?: boolean }) | null;
     },
   });
   return (
@@ -32,7 +32,8 @@ export function Verify() {
       <div className="mt-8">
         {isLoading && <LoadingBlock rows={2} />}
         {serial && !isLoading && !data && <Alert tone="error" title="No certificate found">We could not find a certificate with reference {serial}. Check the reference and try again.</Alert>}
-        {data && (
+        {data?.hidden && <Alert tone="info" title="Online verification is switched off">Contact ProfJero Edu support to confirm this certificate.</Alert>}
+        {data && !data.hidden && (
           <div className={`card p-6 ${data.status === 'valid' ? 'ring-2 ring-growth-500/40' : 'ring-2 ring-red-300'}`}>
             <div className="flex items-center gap-3">
               {data.status === 'valid' ? <BadgeCheck className="h-8 w-8 text-growth-600" /> : <ShieldX className="h-8 w-8 text-red-600" />}

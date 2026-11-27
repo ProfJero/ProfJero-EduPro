@@ -1,3 +1,4 @@
+import { CertificateSettings } from '@/features/certificates/AdminCertificateSettings';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -28,10 +29,23 @@ export function AdminAssessments() {
 }
 
 export function AdminCertificates() {
+  return (
+    <div>
+      <PageHeader title="Certificates" description="Every certificate issued on the platform, and how certificates look and work." />
+      <Tabs tabs={[
+        { value: 'issued', label: 'Issued', content: <IssuedCertificates /> },
+        { value: 'settings', label: 'Settings & design', content: <CertificateSettings /> },
+      ]} />
+    </div>
+  );
+}
+
+function IssuedCertificates() {
   const qc = useQueryClient();
   const toast = useToast();
   const [q, setQ] = useState('');
   const [revoke, setRevoke] = useState<{ id: string; serial: string } | null>(null);
+  const [rename, setRename] = useState<{ id: string; serial: string; name: string } | null>(null);
   const [reason, setReason] = useState('');
   const { data, isLoading } = useQuery({ queryKey: ['admin-certs', q], queryFn: async () => {
     let qq = supabase.from('certificates').select('id, serial, learner_name, course_title, issuer_name, completed_on, status').order('issued_at', { ascending: false }).limit(200);
@@ -40,13 +54,15 @@ export function AdminCertificates() {
   } });
   return (
     <div>
-      <PageHeader title="Certificates" description="Every certificate issued on the platform. Revocation is recorded and shown on the public verification page." />
+      <p className="mb-3 text-sm text-ink-600">Revocation is recorded and shown on the public verification page.</p>
       <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by reference or learner" aria-label="Search certificates" className="mb-4 max-w-sm" />
       {isLoading ? <LoadingBlock /> : <DataTable rows={data ?? []} rowKey={(r) => r.id} empty={<EmptyState title="No certificates yet" />} columns={[
         { key: 's', header: 'Reference', primary: true, cell: (r) => <Link to={`/verify/${r.serial}`} className="font-mono text-sm hover:text-brand-700">{r.serial}</Link> },
         { key: 'l', header: 'Learner', cell: (r) => r.learner_name }, { key: 'c', header: 'Course', cell: (r) => r.course_title },
         { key: 'd', header: 'Completed', cell: (r) => fmtDate(r.completed_on) }, { key: 'st', header: 'Status', cell: (r) => <StatusBadge status={r.status} /> },
-        { key: 'x', header: '', cell: (r) => r.status === 'valid' && <Button size="sm" variant="ghost" onClick={() => { setReason(''); setRevoke(r); }}>Revoke</Button> },
+        { key: 'x', header: '', cell: (r) => <div className="flex gap-1">
+          <Button size="sm" variant="ghost" onClick={() => setRename({ id: r.id, serial: r.serial, name: r.learner_name })}>Fix name</Button>
+          {r.status === 'valid' && <Button size="sm" variant="ghost" onClick={() => { setReason(''); setRevoke(r); }}>Revoke</Button>}</div> },
       ]} />}
       <Dialog open={Boolean(revoke)} onOpenChange={(o) => !o && setRevoke(null)} title={`Revoke ${revoke?.serial}?`} size="sm"
         footer={<><Button variant="outline" onClick={() => setRevoke(null)}>Cancel</Button><Button variant="danger" disabled={!reason.trim()} onClick={async () => {
@@ -54,6 +70,13 @@ export function AdminCertificates() {
           if (error) toast.error('Failed', error.message); else { toast.success('Certificate revoked'); setRevoke(null); void qc.invalidateQueries({ queryKey: ['admin-certs'] }); }
         }}>Revoke</Button></>}>
         <Field label="Reason"><Input value={reason} onChange={(e) => setReason(e.target.value)} /></Field>
+      </Dialog>
+      <Dialog open={Boolean(rename)} onOpenChange={(o) => !o && setRename(null)} title={`Correct the name on ${rename?.serial}`} size="sm"
+        footer={<><Button variant="outline" onClick={() => setRename(null)}>Cancel</Button><Button disabled={(rename?.name.trim().length ?? 0) < 2} onClick={async () => {
+          const { error } = await supabase.rpc('admin_update_certificate_name', { p_certificate: rename!.id, p_name: rename!.name });
+          if (error) toast.error('Failed', error.message); else { toast.success('Name corrected'); setRename(null); void qc.invalidateQueries({ queryKey: ['admin-certs'] }); }
+        }}>Save</Button></>}>
+        {rename && <Field label="Learner’s full official name" hint="The change is recorded in the audit log."><Input value={rename.name} onChange={(e) => setRename({ ...rename, name: e.target.value })} maxLength={120} /></Field>}
       </Dialog>
     </div>
   );
