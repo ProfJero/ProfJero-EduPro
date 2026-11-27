@@ -1,3 +1,4 @@
+import { usePageTitle } from '@/lib/seo';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -15,6 +16,7 @@ export function CourseDetail() {
   const { slug } = useParams();
   const { data: course, isLoading, error, refetch } = useCourse({ slug });
   const { data: outline } = useCourseOutline(course?.id);
+  usePageTitle(course?.title);
   const { data: stats } = useCourseStats(course?.id);
   const { data: inst } = useInstructorCards(course ? [course.id] : []);
   const [preview, setPreview] = useState<OutlineLesson | null>(null);

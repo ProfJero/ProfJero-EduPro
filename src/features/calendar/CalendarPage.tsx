@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { addDays, addMonths, endOfMonth, endOfWeek, format, isSameDay, isSameMonth, startOfMonth, startOfWeek } from 'date-fns';
-import { BookOpen, Bus, CalendarDays, CalendarPlus, ChevronLeft, ChevronRight, ClipboardCheck, FileText, PartyPopper, PencilRuler, Bell, Sun as SunIcon, Video, XCircle, Trash2 } from 'lucide-react';
+import { BookOpen, Bus, CalendarDays, CalendarPlus, ChevronLeft, ChevronRight, ClipboardCheck, FileText, PartyPopper, PencilRuler, Bell, Sun as SunIcon, Video, XCircle, Trash2, Pencil } from 'lucide-react';
 import { Badge, Button, Card, CardBody, Checkbox, Dialog, Field, Input, PageHeader, Select, Textarea, useToast } from '@/components/ui';
 import { supabase, unwrap } from '@/lib/supabase';
 import { fmtTime, localInputToIso } from '@/lib/dates';
@@ -31,6 +31,9 @@ export function CalendarPage() {
   const [month, setMonth] = useState(() => startOfMonth(initial));
   const [selected, setSelected] = useState(() => initial);
   const [creating, setCreating] = useState(false);
+  const [editing, setEditing] = useState<string | null>(null);
+  const panel = useRef<HTMLDivElement>(null);
+  const pick = (d: Date) => { setSelected(d); if (window.innerWidth < 1024) requestAnimationFrame(() => panel.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })); };
   const { workspaces } = useAuth();
   const teaches = workspaces.some((w) => w.kind === 'teacher');
   const from = startOfWeek(startOfMonth(month), { weekStartsOn: 1 });
@@ -55,6 +58,8 @@ export function CalendarPage() {
         {teaches && <Button leftIcon={<CalendarPlus className="h-4 w-4" />} onClick={() => setCreating(true)}>Schedule</Button>}
         <Button variant="secondary" onClick={ics} disabled={!events.data?.length}>Export (.ics)</Button></>} />
       {creating && <ScheduleDialog date={selected} onClose={() => setCreating(false)} />}
+      {editing && <ScheduleDialog date={selected} editId={editing} onClose={() => setEditing(null)} />}
+      {teaches && <p className="-mt-3 text-sm text-ink-500">Tip: tap any date to see it, then tap <b>Schedule on this day</b>. Tap an event you created to change or move it.</p>}
       <div className="grid gap-5 lg:grid-cols-[1fr_20rem]">
         <Card><CardBody>
           <div className="mb-4 flex items-center justify-between">
@@ -66,7 +71,7 @@ export function CalendarPage() {
           <div className="grid grid-cols-7 gap-px overflow-hidden rounded-xl border border-ink-200 bg-ink-200 text-sm">
             {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => <div key={d} className="bg-ink-50 py-1.5 text-center text-xs font-bold uppercase text-ink-500">{d}</div>)}
             {days.map((d) => { const list = on(d); return (
-              <button key={d.toISOString()} onClick={() => setSelected(d)} aria-pressed={isSameDay(d, selected)} aria-label={`${format(d, 'd MMMM')}, ${list.length} events`}
+              <button key={d.toISOString()} onClick={() => pick(d)} onDoubleClick={() => { if (teaches) { setSelected(d); setCreating(true); } }} aria-pressed={isSameDay(d, selected)} aria-label={`${format(d, 'd MMMM')}, ${list.length} events`}
                 className={cn('min-h-[4.5rem] bg-surface p-1.5 text-left align-top transition hover:bg-brand-50/50', !isSameMonth(d, month) && 'text-ink-300', isSameDay(d, selected) && 'ring-2 ring-inset ring-brand-500')}>
                 <span className={cn('inline-grid h-6 w-6 place-items-center rounded-full text-xs font-bold', isSameDay(d, new Date()) && 'bg-brand-600 text-white')}>{format(d, 'd')}</span>
                 <div className="mt-0.5 space-y-0.5">{list.slice(0, 2).map((e) => <span key={e.kind + e.id} className={cn('block truncate rounded px-1 text-[0.65rem] font-semibold', KIND[e.kind]?.cls)}>{e.title}</span>)}{list.length > 2 && <span className="block text-[0.65rem] text-ink-500">+{list.length - 2} more</span>}</div>
@@ -75,9 +80,11 @@ export function CalendarPage() {
           </div>
         </CardBody></Card>
         <Card><CardBody>
+          <div ref={panel} className="scroll-mt-24" />
           <h2 className="flex items-center gap-2 font-bold"><CalendarDays className="h-5 w-5 text-brand-600" />{format(selected, 'EEEE d MMMM')}</h2>
+          {teaches && <Button size="sm" className="mt-3 w-full" leftIcon={<CalendarPlus className="h-4 w-4" />} onClick={() => setCreating(true)}>Schedule on this day</Button>}
           {dayEvents.length ? <ul className="mt-3 space-y-2">{dayEvents.map((e) => { const k = KIND[e.kind] ?? KIND.live; return (
-            <li key={e.kind + e.id} className="group relative"><EventActions e={e} /><Link to={e.link ?? '/calendar'} className={cn('flex gap-3 rounded-xl border border-ink-200 p-3 hover:border-brand-300', e.status === 'cancelled' && 'opacity-60 line-through')}>
+            <li key={e.kind + e.id} className="group relative"><EventActions e={e} onEdit={() => setEditing(e.id)} /><Link to={e.link ?? '/calendar'} className={cn('flex gap-3 rounded-xl border border-ink-200 p-3 hover:border-brand-300', e.status === 'cancelled' && 'opacity-60 line-through')}>
               <span className={cn('grid h-9 w-9 shrink-0 place-items-center rounded-lg', k.cls)}><k.icon className="h-4 w-4" /></span>
               <span className="min-w-0"><span className="block truncate font-semibold">{e.title}</span><span className="text-xs text-ink-500">{fmtTime(e.starts_at)} · {e.context}</span>{e.status && e.status !== 'scheduled' && <Badge className="ml-1">{e.status}</Badge>}</span>
             </Link></li>
@@ -89,7 +96,7 @@ export function CalendarPage() {
   );
 }
 
-function EventActions({ e }: { e: { kind: string; id: string; status: string | null } }) {
+function EventActions({ e, onEdit }: { e: { kind: string; id: string; status: string | null }; onEdit: () => void }) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const toast = useToast();
@@ -102,14 +109,15 @@ function EventActions({ e }: { e: { kind: string; id: string; status: string | n
   });
   if (!mine.data) return null;
   return (
-    <div className="absolute right-2 top-2 z-10 flex gap-1 opacity-0 transition group-hover:opacity-100 focus-within:opacity-100">
+    <div className="absolute right-2 top-2 z-10 flex gap-1 transition lg:opacity-0 lg:group-hover:opacity-100 lg:focus-within:opacity-100">
+      {e.status !== 'cancelled' && <button className="rounded-lg bg-surface p-1 text-ink-500 shadow hover:text-brand-700" title="Edit or move" aria-label="Edit or move event" onClick={onEdit}><Pencil className="h-4 w-4" /></button>}
       {e.status !== 'cancelled' && <button className="rounded-lg bg-surface p-1 text-ink-500 shadow hover:text-sun-700" title="Cancel event" onClick={() => act.mutate('cancel')}><XCircle className="h-4 w-4" /></button>}
       <button className="rounded-lg bg-surface p-1 text-ink-500 shadow hover:text-red-600" title="Delete" onClick={() => act.mutate('delete')}><Trash2 className="h-4 w-4" /></button>
     </div>
   );
 }
 
-function ScheduleDialog({ date, onClose }: { date: Date; onClose: () => void }) {
+function ScheduleDialog({ date, onClose, editId }: { date: Date; onClose: () => void; editId?: string }) {
   const { user } = useAuth();
   const qc = useQueryClient();
   const toast = useToast();
@@ -117,11 +125,24 @@ function ScheduleDialog({ date, onClose }: { date: Date; onClose: () => void }) 
   const courses = useManagedCourses();
   const day = format(date, 'yyyy-MM-dd');
   const [f, setF] = useState({ title: '', kind: 'lesson', scope: '', day, start: '08:00', end: '09:00', allDay: false, location: '', description: '', remind: 60, repeat: 1 });
+  const existing = useQuery({ queryKey: ['class-event', editId], enabled: Boolean(editId), queryFn: async () => unwrap(await supabase.from('class_events').select('*').eq('id', editId!).single()) });
+  useEffect(() => {
+    const e = existing.data;
+    if (!e) return;
+    const st = new Date(e.starts_at), en = e.ends_at ? new Date(e.ends_at) : null;
+    setF({ title: e.title, kind: e.kind, scope: e.class_id ? `class:${e.class_id}` : `course:${e.course_id}`, day: format(st, 'yyyy-MM-dd'), start: format(st, 'HH:mm'), end: en ? format(en, 'HH:mm') : format(st, 'HH:mm'),
+      allDay: e.all_day, location: e.location ?? '', description: e.description ?? '', remind: e.remind_minutes, repeat: 1 });
+  }, [existing.data]);
   const save = useMutation({
     mutationFn: async () => {
       const [t, id] = f.scope.split(':');
       if (!id) throw new Error('Choose a class or course.');
       if (f.title.trim().length < 2) throw new Error('Add a title.');
+      if (editId) {
+        unwrap(await supabase.from('class_events').update({ title: f.title.trim(), kind: f.kind, description: f.description.trim() || null, location: f.location.trim() || null, all_day: f.allDay, remind_minutes: f.remind,
+          starts_at: localInputToIso(`${f.day}T${f.allDay ? '00:00' : f.start}`)!, ends_at: f.allDay ? null : localInputToIso(`${f.day}T${f.end}`) }).eq('id', editId));
+        return;
+      }
       const rows = Array.from({ length: f.repeat }, (_, i) => {
         const d = addDays(new Date(`${f.day}T00:00:00`), i * 7);
         const ds = format(d, 'yyyy-MM-dd');
@@ -133,18 +154,18 @@ function ScheduleDialog({ date, onClose }: { date: Date; onClose: () => void }) 
       });
       unwrap(await supabase.from('class_events').insert(rows));
     },
-    onSuccess: () => { toast.success(f.repeat > 1 ? `${f.repeat} weekly events scheduled` : 'Scheduled', 'Members were notified and will get a reminder.'); void qc.invalidateQueries({ queryKey: ['calendar'] }); onClose(); },
+    onSuccess: () => { toast.success(editId ? 'Schedule updated' : f.repeat > 1 ? `${f.repeat} weekly events scheduled` : 'Scheduled', editId ? 'Members are told if the time changed.' : 'Members were notified and will get a reminder.'); void qc.invalidateQueries({ queryKey: ['calendar'] }); onClose(); },
     onError: (e) => toast.error('Could not schedule', errorMessage(e)),
   });
   return (
-    <Dialog open onOpenChange={(o) => !o && onClose()} title="Schedule for your class" description="Members see it in their calendar and get notified."
-      footer={<><Button variant="secondary" onClick={onClose}>Cancel</Button><Button loading={save.isPending} onClick={() => save.mutate()} leftIcon={<CalendarPlus className="h-4 w-4" />}>Schedule & notify</Button></>}>
+    <Dialog open onOpenChange={(o) => !o && onClose()} title={editId ? 'Change this schedule' : `Schedule for ${format(new Date(`${f.day}T12:00:00`), 'EEE d MMM')}`} description="Members see it in their calendar and get notified."
+      footer={<><Button variant="secondary" onClick={onClose}>Cancel</Button><Button loading={save.isPending} onClick={() => save.mutate()} leftIcon={<CalendarPlus className="h-4 w-4" />}>{editId ? 'Save changes' : 'Schedule & notify'}</Button></>}>
       <div className="space-y-4">
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="What" required><Input value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} maxLength={140} placeholder="Chemistry practical: titration" /></Field>
           <Field label="Type"><Select value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value })}>{EVENT_KINDS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</Select></Field>
         </div>
-        <Field label="For" required><Select value={f.scope} onChange={(e) => setF({ ...f, scope: e.target.value })}><option value="">Choose…</option>
+        <Field label="For" required><Select value={f.scope} disabled={Boolean(editId)} onChange={(e) => setF({ ...f, scope: e.target.value })}><option value="">Choose…</option>
           {(classes.data ?? []).length > 0 && <optgroup label="Classes">{classes.data!.map((c) => <option key={c.id} value={`class:${c.id}`}>{c.name}</option>)}</optgroup>}
           {(courses.data ?? []).length > 0 && <optgroup label="Courses">{courses.data!.map((c) => <option key={c.id} value={`course:${c.id}`}>{c.title}</option>)}</optgroup>}
         </Select></Field>
@@ -156,7 +177,7 @@ function ScheduleDialog({ date, onClose }: { date: Date; onClose: () => void }) 
         <div className="grid gap-3 sm:grid-cols-3">
           <Field label="Where (optional)"><Input value={f.location} onChange={(e) => setF({ ...f, location: e.target.value })} maxLength={140} placeholder="Science lab / Online" /></Field>
           <Field label="Reminder"><Select value={f.remind} onChange={(e) => setF({ ...f, remind: Number(e.target.value) })}><option value={0}>No reminder</option><option value={15}>15 minutes before</option><option value={60}>1 hour before</option><option value={1440}>1 day before</option></Select></Field>
-          <Field label="Repeat weekly"><Select value={f.repeat} onChange={(e) => setF({ ...f, repeat: Number(e.target.value) })}>{[1, 2, 4, 6, 8, 12, 14].map((n) => <option key={n} value={n}>{n === 1 ? 'Does not repeat' : `${n} weeks`}</option>)}</Select></Field>
+          {!editId && <Field label="Repeat weekly"><Select value={f.repeat} onChange={(e) => setF({ ...f, repeat: Number(e.target.value) })}>{[1, 2, 4, 6, 8, 12, 14].map((n) => <option key={n} value={n}>{n === 1 ? 'Does not repeat' : `${n} weeks`}</option>)}</Select></Field>}
         </div>
         <Field label="Notes for learners"><Textarea rows={2} value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} maxLength={2000} placeholder="Bring your lab coat and calculators." /></Field>
       </div>

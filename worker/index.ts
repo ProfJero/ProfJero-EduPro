@@ -6,6 +6,7 @@
 import { privateDownloadUrl, signParams } from './cloudinary';
 import { apiHealth, handleApi } from '../api/src/index';
 import type { Env as ApiEnv } from '../api/src/env';
+import { robots, sitemap, withSeo } from './seo';
 
 export interface Env extends ApiEnv {
   ASSETS: { fetch: (req: Request) => Promise<Response> };
@@ -18,6 +19,7 @@ export interface Env extends ApiEnv {
   GOOGLE_CLIENT_ID?: string;
   ZOOM_CLIENT_ID?: string;
   API_URL?: string; // the profjero-edu-api worker origin
+  GOOGLE_SITE_VERIFICATION?: string; // optional Search Console HTML-tag token
 }
 
 type Purpose = 'avatar' | 'course_media' | 'submission';
@@ -166,8 +168,11 @@ export default {
         return json({ error: 'Server error' }, 500);
       }
     }
-    const res = await env.ASSETS.fetch(req);
+    if (req.method === 'GET' && url.pathname === '/robots.txt') return robots(url.origin);
+    if (req.method === 'GET' && url.pathname === '/sitemap.xml') return sitemap(env, url.origin);
+    let res = await env.ASSETS.fetch(req);
     const isHtml = (res.headers.get('content-type') ?? '').includes('text/html');
+    if (isHtml && req.method === 'GET') { try { res = await withSeo(res, url, env); } catch (e) { console.error('seo', e); } }
     const out = securityHeaders(res, env, isHtml);
     if (url.pathname.startsWith('/assets/')) out.headers.set('cache-control', 'public, max-age=31536000, immutable');
     else if (isHtml || url.pathname === '/sw.js' || url.pathname.endsWith('.webmanifest')) out.headers.set('cache-control', 'no-cache');

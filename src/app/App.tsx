@@ -1,3 +1,4 @@
+import { useRouteTitle } from '@/lib/seo';
 import { lazy, Suspense, type ReactNode } from 'react';
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -168,6 +169,7 @@ export function App() {
           <AuthProvider>
             <PrefsSync />
             <S>
+              <RouteTitle />
               <Routes>
                 <Route element={<PublicLayout />}>
                   <Route index element={<Home />} />
@@ -331,4 +333,9 @@ export function App() {
 
 function OutletPassthrough() {
   return <Outlet />;
+}
+
+function RouteTitle() {
+  useRouteTitle();
+  return null;
 }

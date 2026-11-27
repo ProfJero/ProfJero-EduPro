@@ -67,7 +67,7 @@ export function ClassRoster({ classId, className, canEdit }: { classId: string; 
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['class-roster', classId] }),
     onError: (e) => toast.error('Not saved', errorMessage(e)),
   });
-  const rows = roster.data ?? [];
+  const rows = useMemo(() => roster.data ?? [], [roster.data]);
   const groups = useMemo(() => [...new Map(rows.filter((r) => r.group_id).map((r) => [r.group_id!, r.group_name!])).entries()], [rows]);
   const shown = useMemo(() => {
     const list = rows.filter((r) => matchesSearch(r, q)
