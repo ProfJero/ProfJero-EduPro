@@ -2,14 +2,15 @@ import { useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Globe2, Lock, LockOpen, MessageCircle, MessagesSquare, Pin, Plus, Presentation, Search, Trash2, Users } from 'lucide-react';
-import { Avatar, Badge, Button, Card, CardBody, ConfirmDialog, Dialog, EmptyState, ErrorState, Field, Input, LoadingBlock, PageHeader, Select, Tabs, Textarea, useToast } from '@/components/ui';
+import { Avatar, Badge, Button, Card, CardBody, ConfirmDialog, Dialog, EmptyState, ErrorState, Field, Input, LoadingBlock, PageHeader, Select, Tabs, useToast } from '@/components/ui';
 import { supabase, unwrap } from '@/lib/supabase';
 import { fromNow } from '@/lib/dates';
 import { cn, errorMessage } from '@/lib/utils';
 import { useAuth } from '@/features/authentication/AuthProvider';
 import { useMyClasses, useMyCourses } from '@/features/learning/queries';
 import { useTeachingRooms } from '@/features/teachers/queries';
-import { ClassroomPanel } from './ClassroomPanel';
+import { ClassroomPanel, useRoomMembers } from './ClassroomPanel';
+import { MentionTextarea, RichText, plainMentions, useMentionInput } from '@/components/app/Mentions';
 
 type Space = { id: string; title: string; body: string | null; subject: string | null; visibility: 'public' | 'class' | 'group'; class_id: string | null; group_id: string | null; created_by: string;
   is_locked: boolean; is_pinned: boolean; message_count: number; last_activity_at: string; created_at: string; cls: { name: string } | null; grp: { name: string } | null; author: { full_name: string | null; display_name: string | null; avatar_url: string | null } | null };
@@ -69,7 +70,7 @@ function SpaceList({ query, empty }: { query: { data?: Space[]; isLoading: boole
               <p className="font-bold text-ink-900 group-hover:text-brand-700">{s.title}</p>
               {s.is_locked && <Lock className="h-3.5 w-3.5 text-ink-400" />}
             </div>
-            {s.body && <p className="mt-0.5 line-clamp-2 text-sm text-ink-600">{s.body}</p>}
+            {s.body && <p className="mt-0.5 line-clamp-2 text-sm text-ink-600">{plainMentions(s.body)}</p>}
             <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-ink-500">
               {s.visibility === 'public' ? <Badge tone="brand" icon={<Globe2 className="h-3 w-3" />}>Open</Badge> : s.visibility === 'class' ? <Badge tone="amber" icon={<Presentation className="h-3 w-3" />}>{s.cls?.name ?? 'Class'}</Badge> : <Badge tone="green" icon={<Users className="h-3 w-3" />}>{s.grp?.name ?? 'Group'}</Badge>}
               {s.subject && <Badge>{s.subject}</Badge>}
@@ -120,13 +121,16 @@ function NewSpaceDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
     return [...m];
   }, [classes.data, teaching.data]);
   const leadGroups = (groups.data ?? []).filter((g) => g.role === 'leader' || g.grp?.created_by === user?.id);
+  const body = useMentionInput();
+  const [scopeKind, scopeId] = f.scope.split(':');
+  const scopeMembers = useRoomMembers(scopeKind === 'group' ? 'group' : 'class', scopeKind === 'public' ? undefined : scopeId);
   const create = useMutation({
     mutationFn: async () => {
       const [kind, id] = f.scope.split(':');
-      return unwrap(await supabase.from('discussion_spaces').insert({ title: f.title.trim(), body: f.body.trim() || null, subject: f.subject, created_by: user!.id,
+      return unwrap(await supabase.from('discussion_spaces').insert({ title: f.title.trim(), body: body.encoded().trim() || null, subject: f.subject, created_by: user!.id,
         visibility: kind === 'class' ? 'class' : kind === 'group' ? 'group' : 'public', class_id: kind === 'class' ? id : null, group_id: kind === 'group' ? id : null }).select('id').single());
     },
-    onSuccess: (d) => { onOpenChange(false); setF({ title: '', body: '', subject: 'General', scope: 'public' }); void qc.invalidateQueries({ queryKey: ['spaces'] }); nav(`/discussions/${d.id}`); },
+    onSuccess: (d) => { onOpenChange(false); body.reset(); setF({ title: '', body: '', subject: 'General', scope: 'public' }); void qc.invalidateQueries({ queryKey: ['spaces'] }); nav(`/discussions/${d.id}`); },
     onError: (e) => toast.error('Could not start the discussion', errorMessage(e)),
   });
   return (
@@ -139,7 +143,9 @@ function NewSpaceDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
           {leadGroups.length > 0 && <optgroup label="Groups I lead">{leadGroups.map((g) => <option key={g.group_id} value={`group:${g.group_id}`}>{g.grp?.name}</option>)}</optgroup>}
         </Select></Field>
         <Field label="Topic or question" required><Input value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} maxLength={140} placeholder="How do I balance chemical equations quickly?" /></Field>
-        <Field label="Details (optional)"><Textarea rows={4} value={f.body} onChange={(e) => setF({ ...f, body: e.target.value })} maxLength={4000} /></Field>
+        <Field label="Details (optional)" hint={scopeKind !== 'public' ? 'Type @ to mention a classmate — they will be notified.' : undefined}>
+          <MentionTextarea rows={4} value={body.value} onValueChange={body.setValue} onPick={body.onPick} members={scopeMembers.data ?? []} me={user?.id} maxLength={4000} />
+        </Field>
         <Field label="Subject"><Select value={f.subject} onChange={(e) => setF({ ...f, subject: e.target.value })}>{SUBJECTS.map((s) => <option key={s}>{s}</option>)}</Select></Field>
       </div>
     </Dialog>
@@ -178,7 +184,7 @@ export function SpaceRoom() {
           <Button size="sm" variant="secondary" leftIcon={s.is_locked ? <LockOpen className="h-4 w-4" /> : <Lock className="h-4 w-4" />} onClick={() => update.mutate({ is_locked: !s.is_locked })}>{s.is_locked ? 'Unlock' : 'Lock'}</Button>
           <Button size="sm" variant="ghost" onClick={() => setConfirm(true)} aria-label="Delete discussion"><Trash2 className="h-4 w-4" /></Button>
         </div> : undefined} />
-      {s.body && <Card><CardBody><p className="whitespace-pre-wrap text-ink-700">{s.body}</p></CardBody></Card>}
+      {s.body && <Card><CardBody><RichText text={s.body} me={user?.id} className="text-ink-700" /></CardBody></Card>}
       {s.is_locked && <p className={cn('rounded-xl bg-ink-100 px-4 py-2 text-sm text-ink-600')}><Lock className="mr-1 inline h-4 w-4" />This discussion is locked — you can read it, but new replies are closed.</p>}
       <ClassroomPanel type="space" roomId={s.id} canModerate={canMod} canPoll={canMod} title="Summary" />
       <ConfirmDialog open={confirm} onOpenChange={setConfirm} title="Delete this discussion?" description="All replies are deleted too." tone="danger" confirmLabel="Delete" loading={del.isPending} onConfirm={() => del.mutate()} />

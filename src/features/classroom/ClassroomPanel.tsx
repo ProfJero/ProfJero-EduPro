@@ -9,6 +9,7 @@ import { useAuth } from '@/features/authentication/AuthProvider';
 import { useClassPresence, type RoomType } from './usePresence';
 import { useLowData } from '@/features/preferences/PreferencesProvider';
 import { PollsPanel } from '@/features/connect/Polls';
+import { MentionTextarea, RichText, useMentionInput, type Mentionable } from '@/components/app/Mentions';
 
 type Msg = { id: string; user_id: string; author_name: string; kind: string; body: string; parent_id: string | null; is_pinned: boolean; is_resolved: boolean; is_accepted: boolean; deleted_at: string | null; created_at: string };
 type Member = { user_id: string; name: string; avatar_url: string | null; member_role: string };
@@ -159,7 +160,9 @@ function Discussion({ type, roomId, messages, loading, canModerate }: { type: Ro
   const { user } = useAuth();
   const qc = useQueryClient();
   const toast = useToast();
-  const [body, setBody] = useState('');
+  const compose = useMentionInput();
+  const members = useRoomMembers(type, roomId);
+  const mentionable: Mentionable[] = members.data ?? [];
   const [asQuestion, setAsQuestion] = useState(false);
   const [filter, setFilter] = useState<'all' | 'questions' | 'open'>('all');
   const invalidate = () => qc.invalidateQueries({ queryKey: ['room-messages', type, roomId] });
@@ -198,6 +201,18 @@ function Discussion({ type, roomId, messages, loading, canModerate }: { type: Ro
     onError: (e) => toast.error('Could not accept', errorMessage(e)),
   });
 
+  // Arriving from a notification: scroll to and highlight the message.
+  useEffect(() => {
+    const id = location.hash.startsWith('#msg-') ? location.hash.slice(1) : null;
+    if (!id || loading) return;
+    const el = document.getElementById(id)?.closest('article');
+    if (!el) return;
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    el.classList.add('ring-2', 'ring-sun-400');
+    const t = setTimeout(() => el.classList.remove('ring-2', 'ring-sun-400'), 3500);
+    return () => clearTimeout(t);
+  }, [loading, messages.length]);
+
   const { top, replies } = useMemo(() => {
     const visible = messages.filter((m) => m.kind !== 'board');
     const replies = new Map<string, Msg[]>();
@@ -214,19 +229,20 @@ function Discussion({ type, roomId, messages, loading, canModerate }: { type: Ro
       <CardHeader title={<span className="inline-flex items-center gap-2"><MessageCircle className="h-5 w-5 text-brand-600" />Class discussion</span>} description="Ask questions, share ideas and help each other. Be kind — your teacher can see everything here."
         action={<div className="flex gap-1 rounded-lg bg-ink-100 p-0.5 text-xs font-semibold">{(['all', 'questions', 'open'] as const).map((f) => <button key={f} onClick={() => setFilter(f)} aria-pressed={filter === f} className={cn('rounded-md px-2.5 py-1', filter === f ? 'bg-surface text-ink-900 shadow-sm' : 'text-ink-500')}>{f === 'open' ? 'Unanswered' : f[0].toUpperCase() + f.slice(1)}</button>)}</div>} />
       <CardBody>
-        <form className="space-y-2" onSubmit={(e) => { e.preventDefault(); if (!body.trim()) return; post.mutate({ body: body.trim(), kind: asQuestion ? 'question' : 'message' }, { onSuccess: () => { setBody(''); setAsQuestion(false); } }); }}>
+        <form className="space-y-2" onSubmit={(e) => { e.preventDefault(); if (!compose.value.trim()) return; post.mutate({ body: compose.encoded().trim(), kind: asQuestion ? 'question' : 'message' }, { onSuccess: () => { compose.reset(); setAsQuestion(false); } }); }}>
           <label htmlFor={`compose-${roomId}`} className="sr-only">Write a message</label>
-          <Textarea id={`compose-${roomId}`} value={body} onChange={(e) => setBody(e.target.value)} rows={2} maxLength={4000} placeholder={asQuestion ? 'What would you like to ask?' : 'Say something to the class…'} />
+          <MentionTextarea id={`compose-${roomId}`} value={compose.value} onValueChange={compose.setValue} onPick={compose.onPick} members={mentionable} me={user?.id} rows={2} maxLength={4000}
+            placeholder={asQuestion ? 'What would you like to ask? Type @ to mention someone' : 'Say something… type @ to mention a classmate or teacher'} />
           <div className="flex items-center justify-between gap-3">
             <label className="inline-flex cursor-pointer items-center gap-2 text-sm font-medium text-ink-600"><input type="checkbox" checked={asQuestion} onChange={(e) => setAsQuestion(e.target.checked)} className="h-4 w-4 accent-brand-600" /><HelpCircle className="h-4 w-4 text-brand-600" />Ask as a question</label>
-            <Button type="submit" size="sm" loading={post.isPending} disabled={!body.trim()} leftIcon={<Send className="h-3.5 w-3.5" />}>Post</Button>
+            <Button type="submit" size="sm" loading={post.isPending} disabled={!compose.value.trim()} leftIcon={<Send className="h-3.5 w-3.5" />}>Post</Button>
           </div>
         </form>
         <div className="mt-5 space-y-3" aria-live="polite">
           {loading ? <p className="text-sm text-ink-500">Loading discussion…</p> : top.length === 0 ? (
             <EmptyState icon={<MessageCircle className="h-6 w-6" />} title="No messages yet" description="Start the conversation — ask a question or share what you learned." className="py-8" />
           ) : top.map((m) => (
-            <MessageItem key={m.id} m={m} replies={(replies.get(m.id) ?? []).sort((a, b) => Number(b.is_accepted) - Number(a.is_accepted) || a.created_at.localeCompare(b.created_at))} mine={m.user_id === user?.id} canModerate={canModerate}
+            <MessageItem key={m.id} m={m} members={mentionable} replies={(replies.get(m.id) ?? []).sort((a, b) => Number(b.is_accepted) - Number(a.is_accepted) || a.created_at.localeCompare(b.created_at))} mine={m.user_id === user?.id} canModerate={canModerate}
               reactions={reactions.data ?? {}} onHelpful={(id, on) => react.mutate({ id, on })} onAccept={(id) => accept.mutate(id)}
               onReply={(text) => post.mutate({ body: text, kind: canModerate ? 'answer' : 'message', parent_id: m.id })}
               onUpdate={(id, patch) => update.mutate({ id, patch })} />
@@ -237,10 +253,10 @@ function Discussion({ type, roomId, messages, loading, canModerate }: { type: Ro
   );
 }
 
-function MessageItem({ m, replies, mine, canModerate, onReply, onUpdate, reactions, onHelpful, onAccept }: { m: Msg; replies: Msg[]; mine: boolean; canModerate: boolean; onReply: (t: string) => void; onUpdate: (id: string, patch: Updates<'classroom_messages'>) => void;
+function MessageItem({ m, members, replies, mine, canModerate, onReply, onUpdate, reactions, onHelpful, onAccept }: { m: Msg; members: Mentionable[]; replies: Msg[]; mine: boolean; canModerate: boolean; onReply: (t: string) => void; onUpdate: (id: string, patch: Updates<'classroom_messages'>) => void;
   reactions: Record<string, { count: number; mine: boolean }>; onHelpful: (id: string, on: boolean) => void; onAccept: (id: string) => void }) {
   const [replying, setReplying] = useState(false);
-  const [text, setText] = useState('');
+  const reply = useMentionInput();
   const { user } = useAuth();
   return (
     <article className={cn('rounded-xl border p-3.5', m.is_pinned ? 'border-brand-200 bg-brand-50/50' : m.kind === 'question' ? 'border-ink-200 bg-surface' : 'border-ink-100 bg-ink-50/50')}>
@@ -253,7 +269,7 @@ function MessageItem({ m, replies, mine, canModerate, onReply, onUpdate, reactio
             {m.is_pinned && <Badge tone="brand" icon={<Pin className="h-3 w-3" />}>Pinned</Badge>}
             <span className="text-xs text-ink-400">{fromNow(m.created_at)}</span>
           </div>
-          <p className="mt-1 whitespace-pre-wrap text-sm text-ink-700">{m.body}</p>
+          <div id={`msg-${m.id}`}><RichText text={m.body} me={user?.id} className="mt-1 text-sm text-ink-700" /></div>
           <div className="mt-2 flex flex-wrap gap-3 text-xs font-semibold text-ink-500">
             <button className="hover:text-brand-700" onClick={() => setReplying((r) => !r)}>Reply</button>
             {(canModerate || mine) && m.kind === 'question' && <button className="inline-flex items-center gap-1 hover:text-growth-700" onClick={() => onUpdate(m.id, { is_resolved: !m.is_resolved })}><CheckCheck className="h-3.5 w-3.5" />{m.is_resolved ? 'Reopen' : 'Mark answered'}</button>}
@@ -263,10 +279,10 @@ function MessageItem({ m, replies, mine, canModerate, onReply, onUpdate, reactio
           {replies.length > 0 && (
             <ul className="mt-3 space-y-2 border-l-2 border-ink-100 pl-3">
               {replies.map((r) => (
-                <li key={r.id} className={cn('text-sm', r.is_accepted && '-ml-3 rounded-r-lg border-l-2 border-growth-500 bg-growth-50/70 py-1.5 pl-3')}>
+                <li key={r.id} id={`msg-${r.id}`} className={cn('text-sm', r.is_accepted && '-ml-3 rounded-r-lg border-l-2 border-growth-500 bg-growth-50/70 py-1.5 pl-3')}>
                   <div className="flex items-center gap-2"><CornerDownRight className="h-3.5 w-3.5 text-ink-300" /><span className="font-semibold text-ink-800">{r.author_name}</span>{r.kind === 'answer' && <Badge tone="green">Teacher</Badge>}{r.is_accepted && <Badge tone="green" icon={<CheckCheck className="h-3 w-3" />}>Accepted answer</Badge>}<span className="text-xs text-ink-400">{fromNow(r.created_at)}</span>
                     {(canModerate || r.user_id === user?.id) && <button className="ml-auto text-ink-300 hover:text-red-600" aria-label="Remove reply" onClick={() => onUpdate(r.id, { deleted_at: new Date().toISOString() })}><Trash2 className="h-3.5 w-3.5" /></button>}</div>
-                  <p className="ml-5 whitespace-pre-wrap text-ink-700">{r.body}</p>
+                  <RichText text={r.body} me={user?.id} className="ml-5 text-ink-700" />
                   <div className="ml-5 mt-1 flex gap-3 text-xs font-semibold text-ink-500">
                     <button disabled={r.user_id === user?.id} onClick={() => onHelpful(r.id, !reactions[r.id]?.mine)} aria-pressed={Boolean(reactions[r.id]?.mine)}
                       className={cn('inline-flex items-center gap-1 disabled:opacity-50', reactions[r.id]?.mine ? 'text-brand-700' : 'hover:text-brand-700')}><ThumbsUp className="h-3.5 w-3.5" />Helpful{reactions[r.id]?.count ? ` · ${reactions[r.id].count}` : ''}</button>
@@ -277,10 +293,12 @@ function MessageItem({ m, replies, mine, canModerate, onReply, onUpdate, reactio
             </ul>
           )}
           {replying && (
-            <form className="mt-3 flex gap-2" onSubmit={(e) => { e.preventDefault(); if (text.trim()) { onReply(text.trim()); setText(''); setReplying(false); } }}>
+            <form className="mt-3 flex items-start gap-2" onSubmit={(e) => { e.preventDefault(); if (reply.value.trim()) { onReply(reply.encoded().trim()); reply.reset(); setReplying(false); } }}>
               <label className="sr-only" htmlFor={`reply-${m.id}`}>Reply</label>
-              <input id={`reply-${m.id}`} value={text} onChange={(e) => setText(e.target.value)} maxLength={4000} className="h-9 flex-1 rounded-lg border border-ink-200 px-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100" placeholder="Write a reply…" autoFocus />
-              <Button type="submit" size="sm">Reply</Button>
+              <div className="min-w-0 flex-1"><MentionTextarea id={`reply-${m.id}`} value={reply.value} onValueChange={reply.setValue} onPick={reply.onPick} members={members} me={user?.id} rows={1} maxLength={4000}
+                className="min-h-[2.5rem] py-2 text-sm" placeholder="Write a reply… (@ to mention)" autoFocus
+                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); } }} /></div>
+              <Button type="submit" size="sm" className="mt-1">Reply</Button>
             </form>
           )}
         </div>
