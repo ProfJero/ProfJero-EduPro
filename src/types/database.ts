@@ -469,14 +469,14 @@ isOneToOne: false
                   ]
                 },"certificate_templates": {
                   Row: {
-                    "accent_color": string,"created_at": string,"footer_text": string | null,"id": string,"is_default": boolean,"name": string,"signatory_name": string | null,"signatory_title": string | null
+                    "accent_color": string,"body_text": string,"created_at": string,"footer_text": string | null,"id": string,"intro_text": string,"is_default": boolean,"logo_url": string | null,"name": string,"seal_text": string | null,"signatory_name": string | null,"signatory_title": string | null,"signature_url": string | null,"style": string,"title_text": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "accent_color"?: string,"created_at"?: string,"footer_text"?: string | null,"id"?: string,"is_default"?: boolean,"name": string,"signatory_name"?: string | null,"signatory_title"?: string | null
+                    "accent_color"?: string,"body_text"?: string,"created_at"?: string,"footer_text"?: string | null,"id"?: string,"intro_text"?: string,"is_default"?: boolean,"logo_url"?: string | null,"name": string,"seal_text"?: string | null,"signatory_name"?: string | null,"signatory_title"?: string | null,"signature_url"?: string | null,"style"?: string,"title_text"?: string,"updated_at"?: string
                   }
                   Update: {
-                    "accent_color"?: string,"created_at"?: string,"footer_text"?: string | null,"id"?: string,"is_default"?: boolean,"name"?: string,"signatory_name"?: string | null,"signatory_title"?: string | null
+                    "accent_color"?: string,"body_text"?: string,"created_at"?: string,"footer_text"?: string | null,"id"?: string,"intro_text"?: string,"is_default"?: boolean,"logo_url"?: string | null,"name"?: string,"seal_text"?: string | null,"signatory_name"?: string | null,"signatory_title"?: string | null,"signature_url"?: string | null,"style"?: string,"title_text"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     
@@ -555,14 +555,14 @@ isOneToOne: false
                   ]
                 },"class_enrolments": {
                   Row: {
-                    "class_id": string,"created_at": string,"joined_via": string,"status": string,"user_id": string
+                    "class_id": string,"created_at": string,"joined_via": string,"section_id": string | null,"status": string,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "class_id": string,"created_at"?: string,"joined_via"?: string,"status"?: string,"user_id": string
+                    "class_id": string,"created_at"?: string,"joined_via"?: string,"section_id"?: string | null,"status"?: string,"user_id": string
                   }
                   Update: {
-                    "class_id"?: string,"created_at"?: string,"joined_via"?: string,"status"?: string,"user_id"?: string
+                    "class_id"?: string,"created_at"?: string,"joined_via"?: string,"section_id"?: string | null,"status"?: string,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -570,6 +570,12 @@ isOneToOne: false
       columns: ["class_id"]
 isOneToOne: false
       referencedRelation: "school_classes"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "class_enrolments_section_id_fkey"
+      columns: ["section_id"]
+isOneToOne: false
+      referencedRelation: "class_sections"
       referencedColumns: ["id"]
     }
                   ]
@@ -633,6 +639,26 @@ isOneToOne: false
                   Relationships: [
                     {
       foreignKeyName: "class_leaders_class_id_fkey"
+      columns: ["class_id"]
+isOneToOne: false
+      referencedRelation: "school_classes"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"class_sections": {
+                  Row: {
+                    "class_id": string,"created_at": string,"id": string,"name": string,"position": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "class_id": string,"created_at"?: string,"id"?: string,"name": string,"position"?: number
+                  }
+                  Update: {
+                    "class_id"?: string,"created_at"?: string,"id"?: string,"name"?: string,"position"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "class_sections_class_id_fkey"
       columns: ["class_id"]
 isOneToOne: false
       referencedRelation: "school_classes"
@@ -975,6 +1001,40 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"feedback_forms": {
+                  Row: {
+                    "anonymous": boolean,"audience": string,"closes_at": string | null,"created_at": string,"created_by": string,"description": string | null,"id": string,"nudge": boolean,"opened_at": string | null,"questions": NonNullable<Json>,"status": string,"title": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "anonymous"?: boolean,"audience"?: string,"closes_at"?: string | null,"created_at"?: string,"created_by"?: string,"description"?: string | null,"id"?: string,"nudge"?: boolean,"opened_at"?: string | null,"questions"?: NonNullable<Json>,"status"?: string,"title": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "anonymous"?: boolean,"audience"?: string,"closes_at"?: string | null,"created_at"?: string,"created_by"?: string,"description"?: string | null,"id"?: string,"nudge"?: boolean,"opened_at"?: string | null,"questions"?: NonNullable<Json>,"status"?: string,"title"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"feedback_responses": {
+                  Row: {
+                    "answers": NonNullable<Json>,"created_at": string,"form_id": string,"id": string,"respondent_role": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "answers": NonNullable<Json>,"created_at"?: string,"form_id": string,"id"?: string,"respondent_role"?: string,"user_id"?: string
+                  }
+                  Update: {
+                    "answers"?: NonNullable<Json>,"created_at"?: string,"form_id"?: string,"id"?: string,"respondent_role"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "feedback_responses_form_id_fkey"
+      columns: ["form_id"]
+isOneToOne: false
+      referencedRelation: "feedback_forms"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"guardian_links": {
                   Row: {
                     "created_at": string,"guardian_id": string,"id": string,"learner_id": string,"relationship": string | null,"status": string
@@ -991,14 +1051,14 @@ isOneToOne: false
                   ]
                 },"instructor_applications": {
                   Row: {
-                    "created_at": string,"expertise": string,"id": string,"motivation": string,"portfolio_url": string | null,"review_notes": string | null,"reviewed_at": string | null,"reviewed_by": string | null,"status": string,"user_id": string
+                    "created_at": string,"expertise": string,"id": string,"institution": string | null,"location": string | null,"motivation": string,"phone": string | null,"portfolio_url": string | null,"review_notes": string | null,"reviewed_at": string | null,"reviewed_by": string | null,"status": string,"subjects": string | null,"teaching_level": string | null,"user_id": string,"years_experience": number | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"expertise": string,"id"?: string,"motivation": string,"portfolio_url"?: string | null,"review_notes"?: string | null,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"status"?: string,"user_id": string
+                    "created_at"?: string,"expertise": string,"id"?: string,"institution"?: string | null,"location"?: string | null,"motivation": string,"phone"?: string | null,"portfolio_url"?: string | null,"review_notes"?: string | null,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"status"?: string,"subjects"?: string | null,"teaching_level"?: string | null,"user_id": string,"years_experience"?: number | null
                   }
                   Update: {
-                    "created_at"?: string,"expertise"?: string,"id"?: string,"motivation"?: string,"portfolio_url"?: string | null,"review_notes"?: string | null,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"status"?: string,"user_id"?: string
+                    "created_at"?: string,"expertise"?: string,"id"?: string,"institution"?: string | null,"location"?: string | null,"motivation"?: string,"phone"?: string | null,"portfolio_url"?: string | null,"review_notes"?: string | null,"reviewed_at"?: string | null,"reviewed_by"?: string | null,"status"?: string,"subjects"?: string | null,"teaching_level"?: string | null,"user_id"?: string,"years_experience"?: number | null
                   }
                   Relationships: [
                     
@@ -1275,14 +1335,14 @@ isOneToOne: false
                   ]
                 },"live_sessions": {
                   Row: {
-                    "agenda": string | null,"cancel_reason": string | null,"class_id": string | null,"course_id": string | null,"created_at": string,"description": string | null,"duration_minutes": number,"embed_in_app": boolean,"host_id": string,"id": string,"join_url": string,"provider": Database["public"]['Enums']["meeting_provider"],"provider_meeting_id": string | null,"provider_meta": NonNullable<Json>,"recording_url": string | null,"starts_at": string,"status": string,"title": string,"updated_at": string
+                    "agenda": string | null,"cancel_reason": string | null,"class_id": string | null,"course_id": string | null,"created_at": string,"description": string | null,"duration_minutes": number,"embed_in_app": boolean,"group_id": string | null,"host_id": string,"id": string,"join_url": string,"provider": Database["public"]['Enums']["meeting_provider"],"provider_meeting_id": string | null,"provider_meta": NonNullable<Json>,"recording_url": string | null,"starts_at": string,"status": string,"title": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "agenda"?: string | null,"cancel_reason"?: string | null,"class_id"?: string | null,"course_id"?: string | null,"created_at"?: string,"description"?: string | null,"duration_minutes"?: number,"embed_in_app"?: boolean,"host_id": string,"id"?: string,"join_url": string,"provider"?: Database["public"]['Enums']["meeting_provider"],"provider_meeting_id"?: string | null,"provider_meta"?: NonNullable<Json>,"recording_url"?: string | null,"starts_at": string,"status"?: string,"title": string,"updated_at"?: string
+                    "agenda"?: string | null,"cancel_reason"?: string | null,"class_id"?: string | null,"course_id"?: string | null,"created_at"?: string,"description"?: string | null,"duration_minutes"?: number,"embed_in_app"?: boolean,"group_id"?: string | null,"host_id": string,"id"?: string,"join_url": string,"provider"?: Database["public"]['Enums']["meeting_provider"],"provider_meeting_id"?: string | null,"provider_meta"?: NonNullable<Json>,"recording_url"?: string | null,"starts_at": string,"status"?: string,"title": string,"updated_at"?: string
                   }
                   Update: {
-                    "agenda"?: string | null,"cancel_reason"?: string | null,"class_id"?: string | null,"course_id"?: string | null,"created_at"?: string,"description"?: string | null,"duration_minutes"?: number,"embed_in_app"?: boolean,"host_id"?: string,"id"?: string,"join_url"?: string,"provider"?: Database["public"]['Enums']["meeting_provider"],"provider_meeting_id"?: string | null,"provider_meta"?: NonNullable<Json>,"recording_url"?: string | null,"starts_at"?: string,"status"?: string,"title"?: string,"updated_at"?: string
+                    "agenda"?: string | null,"cancel_reason"?: string | null,"class_id"?: string | null,"course_id"?: string | null,"created_at"?: string,"description"?: string | null,"duration_minutes"?: number,"embed_in_app"?: boolean,"group_id"?: string | null,"host_id"?: string,"id"?: string,"join_url"?: string,"provider"?: Database["public"]['Enums']["meeting_provider"],"provider_meeting_id"?: string | null,"provider_meta"?: NonNullable<Json>,"recording_url"?: string | null,"starts_at"?: string,"status"?: string,"title"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -1296,6 +1356,12 @@ isOneToOne: false
       columns: ["course_id"]
 isOneToOne: false
       referencedRelation: "courses"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "live_sessions_group_id_fkey"
+      columns: ["group_id"]
+isOneToOne: false
+      referencedRelation: "study_groups"
       referencedColumns: ["id"]
     }
                   ]
@@ -1649,14 +1715,14 @@ isOneToOne: false
                   ]
                 },"school_classes": {
                   Row: {
-                    "academic_year_id": string | null,"allow_guests": boolean,"color": string,"cover_url": string | null,"created_at": string,"description": string | null,"id": string,"is_archived": boolean,"join_code": string | null,"join_enabled": boolean,"join_requires_approval": boolean,"level": string | null,"name": string,"owner_id": string | null,"room_label": string | null,"school_id": string | null,"stream": string | null,"subject": string | null,"updated_at": string
+                    "academic_year_id": string | null,"allow_guests": boolean,"ask_section": boolean,"color": string,"cover_url": string | null,"created_at": string,"description": string | null,"id": string,"is_archived": boolean,"join_code": string | null,"join_enabled": boolean,"join_requires_approval": boolean,"level": string | null,"name": string,"owner_id": string | null,"room_label": string | null,"school_id": string | null,"stream": string | null,"subject": string | null,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "academic_year_id"?: string | null,"allow_guests"?: boolean,"color"?: string,"cover_url"?: string | null,"created_at"?: string,"description"?: string | null,"id"?: string,"is_archived"?: boolean,"join_code"?: string | null,"join_enabled"?: boolean,"join_requires_approval"?: boolean,"level"?: string | null,"name": string,"owner_id"?: string | null,"room_label"?: string | null,"school_id"?: string | null,"stream"?: string | null,"subject"?: string | null,"updated_at"?: string
+                    "academic_year_id"?: string | null,"allow_guests"?: boolean,"ask_section"?: boolean,"color"?: string,"cover_url"?: string | null,"created_at"?: string,"description"?: string | null,"id"?: string,"is_archived"?: boolean,"join_code"?: string | null,"join_enabled"?: boolean,"join_requires_approval"?: boolean,"level"?: string | null,"name": string,"owner_id"?: string | null,"room_label"?: string | null,"school_id"?: string | null,"stream"?: string | null,"subject"?: string | null,"updated_at"?: string
                   }
                   Update: {
-                    "academic_year_id"?: string | null,"allow_guests"?: boolean,"color"?: string,"cover_url"?: string | null,"created_at"?: string,"description"?: string | null,"id"?: string,"is_archived"?: boolean,"join_code"?: string | null,"join_enabled"?: boolean,"join_requires_approval"?: boolean,"level"?: string | null,"name"?: string,"owner_id"?: string | null,"room_label"?: string | null,"school_id"?: string | null,"stream"?: string | null,"subject"?: string | null,"updated_at"?: string
+                    "academic_year_id"?: string | null,"allow_guests"?: boolean,"ask_section"?: boolean,"color"?: string,"cover_url"?: string | null,"created_at"?: string,"description"?: string | null,"id"?: string,"is_archived"?: boolean,"join_code"?: string | null,"join_enabled"?: boolean,"join_requires_approval"?: boolean,"level"?: string | null,"name"?: string,"owner_id"?: string | null,"room_label"?: string | null,"school_id"?: string | null,"stream"?: string | null,"subject"?: string | null,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -1732,6 +1798,52 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                  ]
+                },"score_entries": {
+                  Row: {
+                    "absent": boolean,"remark": string | null,"score": number | null,"sheet_id": string,"updated_at": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "absent"?: boolean,"remark"?: string | null,"score"?: number | null,"sheet_id": string,"updated_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "absent"?: boolean,"remark"?: string | null,"score"?: number | null,"sheet_id"?: string,"updated_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "score_entries_sheet_id_fkey"
+      columns: ["sheet_id"]
+isOneToOne: false
+      referencedRelation: "score_sheets"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"score_sheets": {
+                  Row: {
+                    "category": string,"class_id": string,"created_at": string,"created_by": string,"description": string | null,"id": string,"max_score": number,"released_at": string | null,"section_id": string | null,"show_class_stats": boolean,"status": string,"title": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "category"?: string,"class_id": string,"created_at"?: string,"created_by"?: string,"description"?: string | null,"id"?: string,"max_score"?: number,"released_at"?: string | null,"section_id"?: string | null,"show_class_stats"?: boolean,"status"?: string,"title": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "category"?: string,"class_id"?: string,"created_at"?: string,"created_by"?: string,"description"?: string | null,"id"?: string,"max_score"?: number,"released_at"?: string | null,"section_id"?: string | null,"show_class_stats"?: boolean,"status"?: string,"title"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "score_sheets_class_id_fkey"
+      columns: ["class_id"]
+isOneToOne: false
+      referencedRelation: "school_classes"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "score_sheets_section_id_fkey"
+      columns: ["section_id"]
+isOneToOne: false
+      referencedRelation: "class_sections"
+      referencedColumns: ["id"]
+    }
                   ]
                 },"study_group_members": {
                   Row: {
@@ -2017,6 +2129,11 @@ isOneToOne: false
 "admin_import_curriculum":
 { Args: { "p_approve"?: boolean,"p_framework": string,"p_items": Json }; Returns: number
                            },
+"admin_instructor_applications":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "avatar_url": string,"bio": string,"classes_owned": number,"country_code": string,"courses_owned": number,"created_at": string,"display_name": string,"email": string,"expertise": string,"full_name": string,"headline": string,"id": string,"institution": string,"joined_at": string,"location": string,"motivation": string,"phone": string,"portfolio_url": string,"review_notes": string,"reviewed_at": string,"reviewer": string,"status": string,"subjects": string,"teaching_level": string,"user_id": string,"years_experience": number
+            }[]
+                           },
 "admin_list_users":
 { Args: { "p_limit"?: number,"p_offset"?: number,"p_search"?: string }; Returns: {
               "created_at": string,"email": string,"email_confirmed": boolean,"full_name": string,"last_sign_in_at": string,"roles": (Database["public"]['Enums']["app_role"])[],"status": Database["public"]['Enums']["account_status"],"total_count": number,"user_id": string
@@ -2024,6 +2141,9 @@ isOneToOne: false
                            },
 "admin_overview":
 { Args: Record<PropertyKey, never>; Returns: Json
+                           },
+"admin_update_certificate_name":
+{ Args: { "p_certificate": string,"p_name": string }; Returns: undefined
                            },
 "ai_consume":
 { Args: { "p_tokens"?: number }; Returns: Json
@@ -2047,10 +2167,16 @@ isOneToOne: false
               "attempt_id": string,"attempt_no": number,"learner_name": string,"max_score": number,"passed": boolean,"pending_manual": boolean,"percentage": number,"score": number,"started_at": string,"status": string,"submitted_at": string,"user_id": string
             }[]
                            },
+"assign_group_member":
+{ Args: { "p_group": string,"p_role"?: string,"p_user": string }; Returns: undefined
+                           },
 "assignment_submissions_overview":
 { Args: { "p_assignment": string }; Returns: {
               "file_count": number,"graded_at": string,"is_late": boolean,"learner_name": string,"score": number,"status": string,"submission_id": string,"submitted_at": string,"user_id": string
             }[]
+                           },
+"auto_group_class":
+{ Args: { "p_by_section"?: boolean,"p_class": string,"p_groups": number,"p_prefix"?: string }; Returns: number
                            },
 "cast_vote":
 { Args: { "p_option_ids": (string)[],"p_poll": string }; Returns: undefined
@@ -2074,6 +2200,11 @@ isOneToOne: false
 "class_progress":
 { Args: { "p_class": string }; Returns: {
               "attendance_rate": number,"avatar_url": string,"avg_progress": number,"last_activity_at": string,"name": string,"submissions": number,"user_id": string
+            }[]
+                           },
+"class_roster":
+{ Args: { "p_class": string }; Returns: {
+              "avatar_url": string,"display_name": string,"full_name": string,"group_id": string,"group_name": string,"group_role": string,"is_guest": boolean,"joined_at": string,"last_seen_at": string,"leader_title": string,"section_id": string,"section_name": string,"user_id": string
             }[]
                            },
 "complete_lesson":
@@ -2114,6 +2245,16 @@ isOneToOne: false
                            },
 "enrol_users":
 { Args: { "p_course": string,"p_user_ids": (string)[] }; Returns: number
+                           },
+"feedback_overview":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "form_id": string,"learners": number,"responses": number,"teachers": number
+            }[]
+                           },
+"feedback_results":
+{ Args: { "p_form": string }; Returns: {
+              "answers": Json,"created_at": string,"id": string,"respondent": string,"respondent_role": string
+            }[]
                            },
 "get_attempt":
 { Args: { "p_attempt": string }; Returns: Json
@@ -2164,6 +2305,9 @@ isOneToOne: false
               "class_id": string,"class_name": string,"created_at": string,"id": string,"teacher": string
             }[]
                            },
+"my_class_section":
+{ Args: { "p_class": string }; Returns: string
+                           },
 "my_context":
 { Args: Record<PropertyKey, never>; Returns: Json
                            },
@@ -2175,6 +2319,16 @@ isOneToOne: false
 "my_invitations":
 { Args: Record<PropertyKey, never>; Returns: {
               "class_name": string,"expires_at": string,"id": string,"role": Database["public"]['Enums']["school_role"],"school_id": string,"school_name": string
+            }[]
+                           },
+"my_open_feedback":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "anonymous": boolean,"closes_at": string,"description": string,"id": string,"nudge": boolean,"questions": Json,"title": string
+            }[]
+                           },
+"my_scores":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "absent": boolean,"category": string,"class_average": number,"class_highest": number,"class_id": string,"class_name": string,"description": string,"entries": number,"max_score": number,"released_at": string,"remark": string,"score": number,"sheet_id": string,"title": string
             }[]
                            },
 "my_students":
@@ -2284,6 +2438,9 @@ isOneToOne: false
                            },
 "session_role":
 { Args: { "p_session": string }; Returns: string
+                           },
+"set_class_section":
+{ Args: { "p_class": string,"p_section": string,"p_user"?: string }; Returns: undefined
                            },
 "set_school_status":
 { Args: { "p_notes"?: string,"p_school": string,"p_status": Database["public"]['Enums']["school_status"] }; Returns: undefined

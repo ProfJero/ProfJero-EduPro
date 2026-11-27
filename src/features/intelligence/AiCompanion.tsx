@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { BookOpenCheck, Bot, HelpCircle, Lightbulb, ListChecks, MessageSquarePlus, Send, Sparkles, Square, Trash2 } from 'lucide-react';
-import { Alert, Badge, Button, Card, PageHeader, Select, Textarea } from '@/components/ui';
+import { BookOpenCheck, Bot, HelpCircle, History, Lightbulb, ListChecks, MessageSquarePlus, Send, Sparkles, Square, Trash2 } from 'lucide-react';
+import { Alert, Badge, Button, Card, Dialog, PageHeader, Select, Textarea } from '@/components/ui';
 import { Markdown } from '@/components/app/Markdown';
 import { supabase, unwrap } from '@/lib/supabase';
 import { fromNow } from '@/lib/dates';
@@ -33,6 +33,7 @@ export function AiCompanion() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [remaining, setRemaining] = useState<number | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const abort = useRef<AbortController | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -66,6 +67,7 @@ export function AiCompanion() {
     void qc.invalidateQueries({ queryKey: ['ai-convs'] });
   };
   const newChat = () => { abort.current?.abort(); setConvId(undefined); setMsgs([]); setParams((p) => { p.delete('c'); return p; }, { replace: true }); };
+  const openChat = (id: string) => { setConvId(id); setHistoryOpen(false); setParams((p) => { p.set('c', id); return p; }, { replace: true }); };
   const remove = async (id: string) => { await supabase.from('ai_conversations').delete().eq('id', id); if (id === convId) newChat(); void qc.invalidateQueries({ queryKey: ['ai-convs'] }); };
 
   return (
@@ -73,17 +75,17 @@ export function AiCompanion() {
       <PageHeader eyebrow="EduIntelligence" title="AI Companion" description="Your study partner, grounded in the approved GES/NaCCA curriculum and your lessons. It helps you understand — it won’t do graded work for you."
         actions={<Button variant="secondary" leftIcon={<MessageSquarePlus className="h-4 w-4" />} onClick={newChat}>New chat</Button>} />
       {!aiAvailable() && <Alert tone="warning" title="AI service not connected">The AI Companion needs the ProfJero Edu API service with an AI key configured by the administrator.</Alert>}
+      <button type="button" onClick={() => setHistoryOpen(true)} className="flex w-full items-center gap-2 rounded-2xl border border-ink-200 bg-surface px-4 py-3 text-left text-sm font-semibold shadow-card lg:hidden">
+        <History className="h-4 w-4 text-brand-600" /><span className="flex-1">Recent chats</span>{convs.data?.length ? <Badge>{convs.data.length}</Badge> : null}
+      </button>
+      <Dialog open={historyOpen} onOpenChange={setHistoryOpen} title="Recent chats" description="Continue where you left off, or start fresh.">
+        <div className="space-y-3">
+          <Button className="w-full" variant="secondary" leftIcon={<MessageSquarePlus className="h-4 w-4" />} onClick={() => { newChat(); setHistoryOpen(false); }}>New chat</Button>
+          <ChatList convs={convs.data ?? []} current={convId} onOpen={openChat} onDelete={(id) => void remove(id)} />
+        </div>
+      </Dialog>
       <div className="grid gap-5 lg:grid-cols-[16rem_1fr]">
-        <aside className="hidden space-y-1 lg:block">
-          <p className="px-2 text-xs font-bold uppercase tracking-wider text-ink-400">Recent chats</p>
-          {(convs.data ?? []).map((c) => (
-            <div key={c.id} className={cn('group flex items-center gap-1 rounded-xl px-2 py-1.5 text-sm', c.id === convId ? 'bg-brand-50 text-brand-800' : 'hover:bg-ink-50')}>
-              <button className="min-w-0 flex-1 text-left" onClick={() => { setConvId(c.id); setParams((p) => { p.set('c', c.id); return p; }, { replace: true }); }}><span className="block truncate font-medium">{c.title}</span><span className="text-xs text-ink-400">{fromNow(c.updated_at)}</span></button>
-              <button className="rounded p-1 text-ink-300 opacity-0 hover:text-red-600 group-hover:opacity-100" onClick={() => void remove(c.id)} aria-label="Delete chat"><Trash2 className="h-3.5 w-3.5" /></button>
-            </div>
-          ))}
-          {!convs.data?.length && <p className="px-2 text-sm text-ink-500">Your chats appear here.</p>}
-        </aside>
+        <aside className="hidden lg:block"><ChatList convs={convs.data ?? []} current={convId} onOpen={openChat} onDelete={(id) => void remove(id)} /></aside>
         <Card className="flex min-h-[60vh] flex-col overflow-hidden">
           <div className="flex flex-wrap items-center gap-2 border-b border-ink-100 p-3">
             {MODES.map((m) => <button key={m.id} title={m.hint} onClick={() => setMode(m.id)} aria-pressed={mode === m.id} className={cn('inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-semibold', mode === m.id ? 'border-brand-600 bg-brand-600 text-white' : 'border-ink-200 text-ink-600 hover:border-brand-300')}><m.icon className="h-4 w-4" />{m.label}</button>)}
@@ -123,6 +125,21 @@ export function AiCompanion() {
           </form>
         </Card>
       </div>
+    </div>
+  );
+}
+
+function ChatList({ convs, current, onOpen, onDelete }: { convs: { id: string; title: string; updated_at: string }[]; current?: string; onOpen: (id: string) => void; onDelete: (id: string) => void }) {
+  return (
+    <div className="space-y-1">
+      <p className="px-2 text-xs font-bold uppercase tracking-wider text-ink-400">Recent chats</p>
+      {convs.map((c) => (
+        <div key={c.id} className={cn('group flex items-center gap-1 rounded-xl px-2 py-1.5 text-sm', c.id === current ? 'bg-brand-50 text-brand-800' : 'hover:bg-ink-50')}>
+          <button className="min-w-0 flex-1 py-1 text-left" onClick={() => onOpen(c.id)}><span className="block truncate font-medium">{c.title}</span><span className="text-xs text-ink-400">{fromNow(c.updated_at)}</span></button>
+          <button className="rounded p-2 text-ink-400 hover:text-red-600 lg:p-1 lg:text-ink-300 lg:opacity-0 lg:group-hover:opacity-100 lg:focus:opacity-100" onClick={() => onDelete(c.id)} aria-label={`Delete chat ${c.title}`}><Trash2 className="h-4 w-4 lg:h-3.5 lg:w-3.5" /></button>
+        </div>
+      ))}
+      {!convs.length && <p className="px-2 text-sm text-ink-500">Your chats appear here.</p>}
     </div>
   );
 }
