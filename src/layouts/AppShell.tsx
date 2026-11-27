@@ -7,6 +7,7 @@ import {
   ClipboardList, Code2, Compass, CreditCard, FileStack, FlaskConical, FolderOpen, Gauge, GraduationCap, Home, Inbox, LayoutDashboard, Library,
   LifeBuoy, LogOut, Megaphone, Menu as MenuIcon, MessagesSquare, Moon, Presentation, ScrollText, Search, Settings, ShieldCheck, Sigma, Sparkles,
   Sun, Swords, Table2, Tags, TrendingUp, UserCog, Users, UsersRound, Video, Wand2, WifiLow, X, CalendarCheck, BookText, Plug,
+  MessageSquareHeart, PartyPopper,
 } from 'lucide-react';
 import { Logo, LogoMark } from '@/components/brand/Logo';
 import { Avatar, Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger } from '@/components/ui';
@@ -15,6 +16,10 @@ import { useAuth } from '@/features/authentication/AuthProvider';
 import type { Workspace } from '@/features/authentication/types';
 import { usePrefs } from '@/features/preferences/PreferencesProvider';
 import { PushPill, PushProvider } from '@/features/notifications/PushPrompt';
+import { FeedbackNudge } from '@/features/feedback/Feedback';
+import { InstallAppButton } from '@/components/app/InstallApp';
+import { rememberKnownUser } from '@/components/app/ReturningUser';
+import { OccasionGreeting, OccasionLayer } from '@/features/occasions/OccasionLayer';
 import { ContrastGuard } from '@/components/app/ContrastGuard';
 import { ErrorBoundary } from '@/components/app/ErrorBoundary';
 import { usePublicSettings } from '@/features/administration/settings';
@@ -138,11 +143,13 @@ function navFor(ws: Workspace): NavGroup[] {
         ] },
         { label: 'System', items: [
           { to: '/admin/settings', label: 'System controls', icon: Settings },
+          { to: '/admin/occasions', label: 'Festive designs', icon: PartyPopper },
           { to: '/admin/integrations', label: 'Integrations & keys', icon: Plug },
           { to: '/admin/announcements', label: 'Announcements', icon: Megaphone },
           { to: '/admin/audit', label: 'Audit log', icon: ScrollText },
         ] },
         { label: 'Support', items: [
+          { to: '/admin/feedback', label: 'Feedback forms', icon: MessageSquareHeart },
           { to: '/admin/support', label: 'Support tickets', icon: LifeBuoy },
           { to: '/admin/inbox', label: 'Contact inbox', icon: Inbox },
         ] },
@@ -205,6 +212,7 @@ export function AppShell() {
   }, []);
 
   const isPro = Boolean(context?.is_edupro);
+  useEffect(() => { if (profile && !profile.is_guest) rememberKnownUser(profile.display_name || profile.full_name); }, [profile]);
   return (
     <PushProvider enabled={Boolean(profile && !profile.is_guest)}>
     <div className="min-h-screen bg-ink-50">
@@ -229,11 +237,14 @@ export function AppShell() {
         <TopBar onMenu={() => setDrawer(true)} onSearch={() => setPalette(true)} />
         <main id="main" className="container-page pb-28 pt-6 lg:pb-12">
           <MaintenanceBanner />
+          <OccasionGreeting />
           <div key={loc.pathname} className="motion-safe:animate-[page-in_.28s_ease-out]"><ErrorBoundary resetKey={loc.pathname}><Outlet /></ErrorBoundary></div>
         </main>
       </div>
       <MobileNav items={groups.flatMap((g) => g.items).filter((i) => i.mobile).slice(0, 4)} onMore={() => setDrawer(true)} />
       <CommandPalette open={palette} onOpenChange={setPalette} groups={groups} />
+      {profile && !profile.is_guest && <FeedbackNudge />}
+      <OccasionLayer />
       <ContrastGuard />
     </div>
     </PushProvider>
@@ -351,6 +362,7 @@ function TopBar({ onMenu, onSearch }: { onMenu: () => void; onSearch: () => void
           {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
         </button>
         <PushPill />
+        <InstallAppButton variant="ghost" size="sm" compact className="hidden sm:inline-flex" label="Install the app" />
         <NotificationBell />
         <Menu>
           <MenuTrigger className="flex items-center gap-2 rounded-full p-0.5 hover:bg-ink-100" aria-label="Account menu">
@@ -358,7 +370,7 @@ function TopBar({ onMenu, onSearch }: { onMenu: () => void; onSearch: () => void
           </MenuTrigger>
           <MenuContent>
             <div className="px-2.5 py-2">
-              <p className="truncate text-sm font-bold text-ink-900">{profile?.full_name || 'Your account'}</p>
+              <p className="truncate text-sm font-bold text-ink-900">{profile?.display_name || profile?.full_name || 'Your account'}</p>
               <p className="truncate text-xs text-ink-500">{profile?.is_guest ? 'Guest account' : user?.email}</p>
             </div>
             <MenuSeparator />

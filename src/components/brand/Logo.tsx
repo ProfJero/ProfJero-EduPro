@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
  */
 export function LogoMark({ className, onDark }: { className?: string; onDark?: boolean }) {
   return (
-    <span className={cn('relative inline-block shrink-0', className)} aria-hidden>
+    <span className={cn('logo-mark relative inline-block shrink-0', className)} aria-hidden>
       <img src="/brand/mark.webp" alt="" width={40} height={40} className={cn('h-full w-full', onDark ? 'hidden' : 'dark:hidden')} />
       <img src="/brand/mark-dark.webp" alt="" width={40} height={40} className={cn('h-full w-full', onDark ? 'block' : 'hidden dark:block')} />
     </span>

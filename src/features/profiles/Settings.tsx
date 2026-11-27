@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { BellRing, Check, Crown, KeyRound, Monitor, Moon, ShieldCheck, Sun, WifiLow } from 'lucide-react';
+import { BellRing, Check, Crown, KeyRound, Monitor, Moon, Palette, ShieldCheck, Sun, WifiLow } from 'lucide-react';
 import { Alert, Avatar, Badge, Button, Card, CardBody, CardHeader, Checkbox, Field, Input, PageHeader, Select, Tabs, Textarea, useToast } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
 import { errorMessage } from '@/lib/utils';
@@ -11,6 +11,8 @@ import { useAuth } from '@/features/authentication/AuthProvider';
 import { FileUploadButton } from '@/features/media/FileUploadButton';
 import { COUNTRIES, TIMEZONES } from './geo';
 import { ACCENTS, networkIsConstrained, usePrefs, type ThemeMode } from '@/features/preferences/PreferencesProvider';
+import { accentScale, SUGGESTED } from '@/features/preferences/customAccent';
+import { InstallAppButton } from '@/components/app/InstallApp';
 import { disablePush, enablePush, pushState, sendTestPush, type PushState } from '@/lib/push';
 import { usePush } from '@/features/notifications/PushPrompt';
 import { ProviderConnections } from '@/features/live/ProviderConnections';
@@ -77,8 +79,8 @@ function ProfileForm() {
         </div>
         <form onSubmit={handleSubmit(save)} className="space-y-5" noValidate>
           <div className="grid gap-5 sm:grid-cols-2">
-            <Field label="Full name" hint="Shown on certificates" error={errors.full_name?.message}><Input {...register('full_name')} /></Field>
-            <Field label="Display name"><Input {...register('display_name')} /></Field>
+            <Field label="Official full name" required hint="Your real name as in school records (e.g. Kofi Mensah Appiah). Teachers see this, and it goes on certificates." error={errors.full_name?.message}><Input {...register('full_name')} autoComplete="name" /></Field>
+            <Field label="Display name / nickname (optional)" hint="What classmates see and how we greet you on your dashboard. Teachers still see your official name."><Input {...register('display_name')} maxLength={60} placeholder="e.g. Kofi B" /></Field>
           </div>
           <Field label="Headline" hint="e.g. “ICT teacher” or “SHS 3 science student”"><Input {...register('headline')} /></Field>
           <Field label="About you"><Textarea rows={4} {...register('bio')} /></Field>
@@ -235,6 +237,7 @@ function AppearanceSection() {
             </button>
           ))}
         </CardBody>
+        <CardBody className="border-t border-ink-100 pt-4"><CustomColour /></CardBody>
       </Card>
       <Card>
         <CardHeader title="Reading & motion" />
@@ -246,6 +249,8 @@ function AppearanceSection() {
             </div>
           </div>
           <Checkbox label="Reduce motion" description="Minimise animations across the platform." checked={prefs.reduceMotion} onChange={(e) => setPref('reduceMotion', e.target.checked)} />
+          <InstallAppButton label="Install ProfJero Edu on this device" />
+          <Checkbox label="Festive decorations" description="Show Christmas lights, Independence Day flags and other celebrations when the platform turns them on." checked={prefs.festive} onChange={(e) => setPref('festive', e.target.checked)} />
           <Checkbox label="Collapse the sidebar by default" description="Show only icons in the navigation (you can toggle it any time)." checked={prefs.sidebarCollapsed} onChange={(e) => setPref('sidebarCollapsed', e.target.checked)} />
         </CardBody>
       </Card>
@@ -298,5 +303,40 @@ function NotificationsSection() {
         <p className="text-xs text-ink-500">In-app notifications are always available under <Link to="/notifications" className="font-semibold text-brand-700">Notifications</Link>.</p>
       </CardBody>
     </Card>
+  );
+}
+
+/** Pick any colour; ProfJero Edu builds a readable palette from it. */
+function CustomColour() {
+  const { prefs, setPref, replacePrefs } = usePrefs();
+  const [hex, setHex] = useState(prefs.customAccent || '#1554d6');
+  const valid = /^#[0-9a-f]{6}$/i.test(hex);
+  const scale = valid ? accentScale(hex) : null;
+  const use = (h: string) => { setHex(h); replacePrefs({ accent: 'custom', customAccent: h }); };
+  const on = prefs.accent === 'custom';
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <p className="text-sm font-semibold text-ink-800">Your own colour</p>
+        {on && <Badge tone="brand">In use</Badge>}
+      </div>
+      <div className="flex flex-wrap items-center gap-3">
+        <label className="relative grid h-12 w-12 cursor-pointer place-items-center overflow-hidden rounded-2xl border-2 border-ink-200 shadow-sm" style={{ background: valid ? hex : '#ccc' }}>
+          <input type="color" value={valid ? hex : '#1554d6'} onChange={(e) => use(e.target.value)} className="absolute inset-0 h-full w-full cursor-pointer opacity-0" aria-label="Choose any colour" />
+          <Palette className="h-5 w-5 text-white drop-shadow" />
+        </label>
+        <Input value={hex} onChange={(e) => { const v = e.target.value.startsWith('#') ? e.target.value : `#${e.target.value}`; setHex(v); if (/^#[0-9a-f]{6}$/i.test(v)) replacePrefs({ accent: 'custom', customAccent: v }); }} maxLength={7} aria-label="Colour code" className="w-32 font-mono" />
+        <div className="flex flex-wrap gap-1.5">{SUGGESTED.map((c) => <button key={c} onClick={() => use(c)} className={cn('h-8 w-8 rounded-full ring-offset-2 transition hover:scale-110', on && hex.toLowerCase() === c && 'ring-2 ring-ink-800')} style={{ background: c }} aria-label={`Use ${c}`} />)}</div>
+      </div>
+      {scale && (
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex overflow-hidden rounded-xl border border-ink-200" aria-hidden>{([50, 100, 200, 300, 400, 500, 600, 700, 800, 900] as const).map((k) => <span key={k} className="h-6 w-6 sm:w-8" style={{ background: scale[k] }} />)}</div>
+          <span className="rounded-xl px-4 py-2 text-sm font-bold text-white" style={{ background: scale[600] }}>Button preview</span>
+          {!on && <Button size="sm" onClick={() => use(hex)}>Use this colour</Button>}
+          {on && <Button size="sm" variant="ghost" onClick={() => setPref('accent', 'blue')}>Back to ProfJero Blue</Button>}
+        </div>
+      )}
+      <p className="text-xs text-ink-500">We automatically adjust very light colours so text on buttons stays easy to read.</p>
+    </div>
   );
 }

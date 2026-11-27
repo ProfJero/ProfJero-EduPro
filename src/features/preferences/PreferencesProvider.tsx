@@ -1,10 +1,11 @@
+import { applyCustomAccent } from './customAccent';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
-export type Accent = 'blue' | 'forest' | 'violet' | 'lagoon' | 'rose' | 'kente' | 'indigo';
+export type Accent = 'blue' | 'forest' | 'violet' | 'lagoon' | 'rose' | 'kente' | 'indigo' | 'custom';
 export type LowDataPref = 'auto' | 'on' | 'off';
 export type TextSize = 'sm' | 'md' | 'lg';
-export type Prefs = { theme: ThemeMode; accent: Accent; lowData: LowDataPref; textSize: TextSize; sidebarCollapsed: boolean; reduceMotion: boolean };
+export type Prefs = { theme: ThemeMode; accent: Accent; customAccent: string; lowData: LowDataPref; textSize: TextSize; sidebarCollapsed: boolean; reduceMotion: boolean; festive: boolean };
 
 export const ACCENTS: { id: Accent; name: string; swatch: string }[] = [
   { id: 'blue', name: 'ProfJero Blue', swatch: '#1554d6' },
@@ -16,7 +17,7 @@ export const ACCENTS: { id: Accent; name: string; swatch: string }[] = [
   { id: 'rose', name: 'Rose', swatch: '#e11d48' },
 ];
 
-const DEFAULTS: Prefs = { theme: 'system', accent: 'blue', lowData: 'auto', textSize: 'md', sidebarCollapsed: false, reduceMotion: false };
+const DEFAULTS: Prefs = { theme: 'system', accent: 'blue', customAccent: '#1554d6', lowData: 'auto', textSize: 'md', sidebarCollapsed: false, reduceMotion: false, festive: true };
 const KEY = 'pje-prefs';
 
 type NetInfo = { saveData?: boolean; effectiveType?: string; addEventListener?: (t: string, f: () => void) => void; removeEventListener?: (t: string, f: () => void) => void };
@@ -43,6 +44,7 @@ export function applyPrefs(p: Prefs, lowDataActive: boolean) {
   const dark = p.theme === 'dark' || (p.theme === 'system' && window.matchMedia?.('(prefers-color-scheme: dark)').matches);
   root.classList.toggle('dark', Boolean(dark));
   root.dataset.accent = p.accent;
+  applyCustomAccent(p.accent === 'custom' ? p.customAccent : null);
   root.dataset.text = p.textSize;
   root.classList.toggle('low-data', lowDataActive);
   root.classList.toggle('reduce-motion', p.reduceMotion);

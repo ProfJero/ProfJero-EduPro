@@ -58,7 +58,7 @@ export function Onboarding() {
             <p className="mt-1 text-ink-500">We only ask for what we need. You can change this later.</p>
             <form className="mt-6 space-y-5" onSubmit={handleSubmit(save)} noValidate>
               {err && <Alert tone="error">{err}</Alert>}
-              <Field label="Full name" required hint="Shown on your certificates" error={errors.full_name?.message}><Input {...register('full_name')} /></Field>
+              <Field label="Full name (official)" required hint="As in school records. Teachers see this and it goes on certificates." error={errors.full_name?.message}><Input {...register('full_name')} /></Field>
               <Field label="Display name" hint="Optional — what classmates see in discussions"><Input {...register('display_name')} /></Field>
               <div className="grid gap-5 sm:grid-cols-2">
                 <Field label="Country"><Select {...register('country_code')}>{COUNTRIES.map(([c, n]) => <option key={c} value={c}>{n}</option>)}</Select></Field>

@@ -149,6 +149,11 @@ const MathLab = L(() => import('@/features/lab/math/MathLab'), 'MathLab');
 const AdminCurriculum = L(() => import('@/features/administration/AdminCurriculum'), 'AdminCurriculum');
 const AdminArena = L(() => import('@/features/administration/AdminArena'), 'AdminArena');
 const AdminIntegrations = L(() => import('@/features/administration/AdminIntegrations'), 'AdminIntegrations');
+const AdminOccasions = L(() => import('@/features/occasions/AdminOccasions'), 'AdminOccasions');
+const AdminFeedback = L(() => import('@/features/feedback/Feedback'), 'AdminFeedback');
+const AdminFeedbackForm = L(() => import('@/features/feedback/Feedback'), 'AdminFeedbackForm');
+const FeedbackList = L(() => import('@/features/feedback/Feedback'), 'FeedbackList');
+const FeedbackFormPage = L(() => import('@/features/feedback/Feedback'), 'FeedbackFormPage');
 const OAuthDone = L(() => import('@/features/live/OAuthDone'), 'OAuthDone');
 
 const S = ({ children }: { children: ReactNode }) => <Suspense fallback={<FullPageSpinner />}>{children}</Suspense>;
@@ -203,6 +208,8 @@ export function App() {
                   <Route path="schools/apply" element={<SchoolApply />} />
                   <Route path="invitations" element={<Invitations />} />
                   <Route path="teach/apply" element={<InstructorApply />} />
+                  <Route path="feedback" element={<FeedbackList />} />
+                  <Route path="feedback/:formId" element={<FeedbackFormPage />} />
                   <Route path="discussions" element={<Discussions />} />
                   <Route path="discussions/:spaceId" element={<SpaceRoom />} />
                   <Route path="curriculum" element={<CurriculumLibrary />} />
@@ -298,6 +305,9 @@ export function App() {
                     <Route path="subscriptions" element={<AdminSubs />} />
                     <Route path="announcements" element={<AdminAnnouncements />} />
                     <Route path="support" element={<AdminSupport />} />
+                    <Route path="feedback" element={<AdminFeedback />} />
+                    <Route path="occasions" element={<AdminOccasions />} />
+                    <Route path="feedback/:formId" element={<AdminFeedbackForm />} />
                     <Route path="inbox" element={<AdminInbox />} />
                     <Route path="audit" element={<AdminAudit />} />
                     <Route path="settings" element={<AdminSettings />} />

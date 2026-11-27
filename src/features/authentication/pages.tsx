@@ -7,6 +7,7 @@ import { Building2, Eye, EyeOff, GraduationCap, MailCheck, Presentation, ShieldO
 import { Alert, Button, ButtonLink, Checkbox, Field, Input, Select, Spinner } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
+import { WelcomeBack } from '@/components/app/ReturningUser';
 import { useAuth } from './AuthProvider';
 import { usePublicSettings } from '@/features/administration/settings';
 
@@ -125,8 +126,10 @@ export function Register() {
   );
   return (
     <div>
+      <WelcomeBack className="mb-6" compact />
       <h1 className="text-3xl font-extrabold">Create your free account</h1>
       <p className="mt-2 text-ink-500">One account for learning, teaching and managing your school.</p>
+      <p className="mt-3 rounded-xl bg-sun-50 px-3 py-2 text-sm text-ink-700">Already have an account? <Link to="/login" className="font-bold text-brand-700 underline">Log in instead</Link> — please don’t create a second account.</p>
       <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-5" noValidate>
         {err && <Alert tone="error">{err}</Alert>}
         <fieldset>
@@ -143,7 +146,7 @@ export function Register() {
           </div>
           {role !== 'learner' && <p className="mt-2 text-xs text-ink-500">Teaching and school roles are granted after verification — you can start learning immediately.</p>}
         </fieldset>
-        <Field label="Full name" required error={errors.full_name?.message}><Input autoComplete="name" {...register('full_name')} /></Field>
+        <Field label="Full name (your official name)" required hint="As in your school records — your teachers see this. You can add a nickname later." error={errors.full_name?.message}><Input autoComplete="name" {...register('full_name')} /></Field>
         <Field label="Email" required error={errors.email?.message}><Input type="email" autoComplete="email" {...register('email')} /></Field>
         <Field label="Password" required hint="At least 8 characters with a letter and a number" error={errors.password?.message}><PasswordInput autoComplete="new-password" {...register('password')} /></Field>
         {role === 'learner' && (

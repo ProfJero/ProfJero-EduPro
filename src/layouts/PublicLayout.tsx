@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { Link, NavLink, Outlet } from 'react-router-dom';
-import { Menu as MenuIcon, X } from 'lucide-react';
+import { LogIn, Menu as MenuIcon, X } from 'lucide-react';
 import { Logo } from '@/components/brand/Logo';
 import { ButtonLink } from '@/components/ui';
 import { useAuth } from '@/features/authentication/AuthProvider';
 import { ConnectionBanner } from '@/components/app/ConnectionBanner';
 import { cn } from '@/lib/utils';
+import { InstallAppButton } from '@/components/app/InstallApp';
+import { OccasionGreeting, OccasionLayer } from '@/features/occasions/OccasionLayer';
 
 const nav = [
   { to: '/courses', label: 'Courses' },
@@ -37,14 +39,19 @@ export function PublicLayout() {
               <ButtonLink to="/dashboard">Go to dashboard</ButtonLink>
             ) : (
               <>
-                <ButtonLink to="/login" variant="ghost">Log in</ButtonLink>
+                <InstallAppButton variant="ghost" />
+                <ButtonLink to="/login" variant="outline" leftIcon={<LogIn className="h-4 w-4" />}>Log in</ButtonLink>
                 <ButtonLink to="/register">Create free account</ButtonLink>
               </>
             )}
           </div>
-          <button className="rounded-lg p-2 text-ink-700 hover:bg-ink-100 lg:hidden" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-controls="mobile-nav" aria-label="Menu">
-            {open ? <X className="h-6 w-6" /> : <MenuIcon className="h-6 w-6" />}
-          </button>
+          <div className="flex items-center gap-2 lg:hidden">
+            {session ? <ButtonLink to="/dashboard" size="sm">Dashboard</ButtonLink>
+              : <ButtonLink to="/login" size="sm" leftIcon={<LogIn className="h-4 w-4" />} data-testid="header-login">Log in</ButtonLink>}
+            <button className="rounded-lg p-2 text-ink-700 hover:bg-ink-100" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-controls="mobile-nav" aria-label="Menu">
+              {open ? <X className="h-6 w-6" /> : <MenuIcon className="h-6 w-6" />}
+            </button>
+          </div>
         </div>
         {open && (
           <nav id="mobile-nav" aria-label="Mobile" className="border-t border-ink-100 bg-surface lg:hidden">
@@ -54,15 +61,18 @@ export function PublicLayout() {
               ))}
               <div className="mt-2 grid grid-cols-2 gap-2">
                 {session ? <ButtonLink to="/dashboard" className="col-span-2">Go to dashboard</ButtonLink> : <>
-                  <ButtonLink to="/login" variant="outline">Log in</ButtonLink>
+                  <ButtonLink to="/login" variant="outline" leftIcon={<LogIn className="h-4 w-4" />}>Log in</ButtonLink>
                   <ButtonLink to="/register">Sign up free</ButtonLink>
                 </>}
+                <InstallAppButton className="col-span-2" />
               </div>
             </div>
           </nav>
         )}
       </header>
+      <OccasionLayer />
       <main id="main" className="flex-1">
+        <OccasionGreeting outer="container-page pt-4" className="mb-0" />
         <Outlet />
       </main>
       <Footer />

@@ -2,9 +2,11 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   ArrowRight, Award, BarChart3, BookOpenCheck, Building2, CalendarClock, CheckCircle2, ClipboardCheck, Crown, FlaskConical, Gamepad2,
-  Hand, MessagesSquare, PenLine, Presentation, Sparkles, Users, Video, WifiOff, Quote,
+  Hand, LogIn, MessagesSquare, PenLine, Presentation, Sparkles, Users, Video, WifiOff, Quote,
 } from 'lucide-react';
 import { ButtonLink, Badge, Avatar } from '@/components/ui';
+import { WelcomeBack } from '@/components/app/ReturningUser';
+import { InstallAppButton } from '@/components/app/InstallApp';
 import { supabase } from '@/lib/supabase';
 import { CourseCard } from '@/features/courses/CourseCard';
 import { CategoryIcon } from '@/features/courses/CategoryIcon';
@@ -42,10 +44,13 @@ function Hero() {
             ProfJero Edu connects learners, teachers and schools in one living learning space — structured courses, live classes,
             class discussions, practical activities, real feedback and certificates that can be verified.
           </p>
+          <WelcomeBack className="mt-6" />
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <ButtonLink to="/register" size="lg">Create your free account <ArrowRight className="h-4 w-4" /></ButtonLink>
-            <ButtonLink to="/courses" size="lg" variant="outline">Explore courses</ButtonLink>
+            <ButtonLink to="/login" size="lg" variant="outline" leftIcon={<LogIn className="h-4 w-4" />}>Log in</ButtonLink>
           </div>
+          <p className="mt-3 text-sm text-ink-600">Already have an account? <Link to="/login" className="font-bold text-brand-700 underline">Log in here</Link> · <Link to="/courses" className="font-semibold text-ink-700 hover:underline">Explore courses</Link></p>
+          <InstallAppButton variant="ghost" className="mt-2 -ml-3" label="Install the ProfJero Edu app" />
           <ul className="mt-8 grid gap-2 text-sm text-ink-600 sm:grid-cols-2">
             {['Free to start — no card needed', 'Works on any phone, even on slow data', 'For SHS, university & lifelong learners', 'Built for schools and independent teachers'].map((t) => (
               <li key={t} className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-growth-600" />{t}</li>

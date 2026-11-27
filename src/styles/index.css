@@ -310,3 +310,30 @@ html[data-text='sm'] { font-size: 93.75%; }
 @keyframes pop { 0% { transform: scale(.6); opacity: 0; } 60% { transform: scale(1.12); opacity: 1; } 100% { transform: scale(1); } }
 @keyframes confetti-fall { 0% { transform: translateY(-10vh) rotate(0); opacity: 1; } 100% { transform: translateY(105vh) rotate(720deg); opacity: .9; } }
 .low-data [class*='animate-'] { animation: none !important; }
+
+/* ---- Festive occasions -------------------------------------------------- */
+@keyframes occasion-twinkle { 0%, 100% { opacity: 1 } 50% { opacity: 0.35 } }
+@keyframes occasion-sway { 0%, 100% { transform: rotate(-6deg) } 50% { transform: rotate(6deg) } }
+.occasion-twinkle { animation: occasion-twinkle 1.6s ease-in-out infinite; }
+.occasion-sway { transform-box: fill-box; transform-origin: top center; animation: occasion-sway 3s ease-in-out infinite; }
+.reduce-motion .occasion-twinkle, .reduce-motion .occasion-sway { animation: none; }
+@media (prefers-reduced-motion: reduce) { .occasion-twinkle, .occasion-sway { animation: none; } }
+.logo-mark::after { content: none; }
+html[data-occasion-hat] .logo-mark::after {
+  content: ''; position: absolute; pointer-events: none; background-repeat: no-repeat; background-position: center; background-size: contain;
+}
+html[data-occasion-hat='santa'] .logo-mark::after { top: -42%; left: -18%; width: 78%; height: 66%; transform: rotate(-22deg);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 52'%3E%3Cpath d='M8 40C14 18 30 4 50 10c-6 6-8 16-4 30z' fill='%23dc2626'/%3E%3Crect x='3' y='37' width='50' height='11' rx='5.5' fill='%23fff'/%3E%3Ccircle cx='52' cy='10' r='6.5' fill='%23fff'/%3E%3C/svg%3E"); }
+html[data-occasion-hat='party'] .logo-mark::after { top: -48%; left: 6%; width: 52%; height: 64%; transform: rotate(-14deg);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 52'%3E%3Cpath d='M20 4 36 48H4z' fill='%238b5cf6'/%3E%3Cpath d='M13 24h14M9 36h22' stroke='%23facc15' stroke-width='4'/%3E%3Ccircle cx='20' cy='5' r='5' fill='%23facc15'/%3E%3C/svg%3E"); }
+html[data-occasion-hat='flag'] .logo-mark::after { top: -30%; right: -26%; width: 58%; height: 50%;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 44 36'%3E%3Crect x='2' y='0' width='2.5' height='36' fill='%23525252'/%3E%3Crect x='4.5' y='2' width='36' height='8' fill='%23ce1126'/%3E%3Crect x='4.5' y='10' width='36' height='8' fill='%23fcd116'/%3E%3Crect x='4.5' y='18' width='36' height='8' fill='%23006b3f'/%3E%3Cpath d='M22.5 10.6l1.5 3.1 3.4.4-2.5 2.3.7 3.4-3.1-1.7-3 1.7.7-3.4-2.6-2.3 3.4-.4z' fill='%23111'/%3E%3C/svg%3E"); }
+html[data-occasion-hat='bunny'] .logo-mark::after { top: -52%; left: 18%; width: 64%; height: 62%;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cellipse cx='12' cy='18' rx='6' ry='16' fill='%23fff' stroke='%23e5e7eb'/%3E%3Cellipse cx='12' cy='19' rx='3' ry='11' fill='%23f9a8d4'/%3E%3Cellipse cx='28' cy='18' rx='6' ry='16' fill='%23fff' stroke='%23e5e7eb'/%3E%3Cellipse cx='28' cy='19' rx='3' ry='11' fill='%23f9a8d4'/%3E%3C/svg%3E"); }
+html[data-occasion-hat='crescent'] .logo-mark::after { top: -34%; right: -22%; width: 50%; height: 50%;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath d='M26 4a16 16 0 1 0 10 28A13 13 0 1 1 26 4z' fill='%23facc15'/%3E%3Cpath d='M30 12l1.3 2.8 3 .3-2.2 2 .6 3-2.7-1.5-2.7 1.5.6-3-2.2-2 3-.3z' fill='%23facc15'/%3E%3C/svg%3E"); }
+html[data-occasion-hat='apple'] .logo-mark::after { top: -30%; right: -20%; width: 48%; height: 48%;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath d='M20 12c-6-4-15-1-15 10 0 9 7 16 11 16 2 0 3-1 4-1s2 1 4 1c4 0 11-7 11-16 0-11-9-14-15-10z' fill='%23ef4444'/%3E%3Cpath d='M20 12c0-5 3-8 8-9-1 5-4 8-8 9z' fill='%2322c55e'/%3E%3C/svg%3E"); }
+html[data-occasion-hat='flower'] .logo-mark::after { top: -34%; right: -24%; width: 52%; height: 52%;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cg fill='%23f472b6'%3E%3Ccircle cx='20' cy='10' r='7'/%3E%3Ccircle cx='30' cy='18' r='7'/%3E%3Ccircle cx='26' cy='30' r='7'/%3E%3Ccircle cx='14' cy='30' r='7'/%3E%3Ccircle cx='10' cy='18' r='7'/%3E%3C/g%3E%3Ccircle cx='20' cy='21' r='6' fill='%23facc15'/%3E%3C/svg%3E"); }
+.low-data .logo-mark::after { content: none !important; }
