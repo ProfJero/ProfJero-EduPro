@@ -32,3 +32,10 @@ See CAPACITY.md for the free-tier analysis.
 ## Verify
 - `curl https://profjero-edu-api.profjerodigitalstudio.workers.dev/api/health` → `features` shows which integrations are configured.
 - Platform console → Integrations shows the same, with what each one needs.
+
+## Google Search Console
+
+1. In Search Console add a **URL-prefix** property for `https://profjero-edupro.pages.dev/`.
+2. Choose **HTML tag** verification and copy only the `content` value.
+3. In Cloudflare → Pages → profjero-edupro → Settings → Variables, add `GOOGLE_SITE_VERIFICATION` (plain text) with that value for Production, then redeploy (push to `main`). The worker adds the tag to every page.
+4. Click **Verify**, then submit `sitemap.xml` under **Sitemaps**. The sitemap updates automatically as courses are published.

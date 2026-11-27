@@ -56,3 +56,21 @@ Legend: ✅ implemented and tested · 🟡 implemented, needs external credentia
 
 ## Not implemented (planned)
 ⬜ Email notifications (in-app and push only) · ⬜ Learning-path UI (tables exist) · ⬜ Course prerequisites editor UI (enforced in the database) · ⬜ Proctoring · ⬜ Payment gateway · ⬜ Official NaCCA strand/indicator data (import tool ready; the documents were not reachable from the build environment, so nothing was invented).
+
+## Round 4 (November 2026)
+
+- **Festive designs** (`/admin/occasions`): Christmas, New Year, Constitution Day, Valentine’s/National Chocolate Day, Independence Day, Easter, Eid al-Fitr/al-Adha, May Day, Mother’s Day, Father’s Day, Republic Day, Founders’ Day (21 Sept), Teachers’ Day, Farmers’ Day (first Friday of December), plus manual “exam season” and “celebration”. Automatic by date, one occasion, or off; per-occasion greetings and on-device preview. Garland, logo ornament (e.g. Santa hat), greeting with countdown and a 20-second burst of falling decorations. Respects reduced motion, low-data mode and each user’s **Settings → Festive decorations** switch.
+- **Feedback forms** (`/admin/feedback`): templates or blank forms with star, 0–10, choice, multi-choice, yes/no and written questions; audience (everyone, learners, teachers); anonymous option; in-app nudge and notification; results with charts, learner/teacher filter and CSV export. People answer at `/feedback`.
+- **Class register**: student total, search by name or nickname, filter by school class, group or leaders, sort, CSV export.
+- **School classes (sections)**: teachers list the real classes their learners come from (e.g. General Arts A2, Science B2); learners pick theirs; roll call, register, groups and score sheets filter by them.
+- **Official names**: teachers see learners’ official full names (also used on certificates); classmates see display names/nicknames.
+- **Groups**: one group per learner per class (leave to switch); teachers and leaders with “Manage study groups” add, move, lead, remove and auto-split learners (optionally per school class). Teachers manage groups without becoming members.
+- **Group live classes**: any member can schedule a Jitsi (or pasted-link) live class that only the group sees and is notified about; chat on the session page.
+- **Score sheets**: titled scores (e.g. “Mid-Sem Exams”) out of any maximum; fast entry (type a name to jump, Enter to go to the next student, paste a column or “name, score” lines from Excel/WhatsApp, autosave); private release with a notification that never shows the score; optional class average; learners see `/learn/scores`.
+- **Notifications for everything**: @mentions, replies and thread replies, questions to teachers, class board posts, group chat (throttled to one unread alert per room every 2 hours), helpful reactions, new class/group discussions, group changes, new help requests, contact messages and teacher applications (to the owner/admins), scores and feedback forms. Notifications open the exact message.
+- **@mentions** in class/group/course chat, replies and class or group discussions.
+- **Mobile**: recent AI chats on phones; Log in button always visible in the public header; “Welcome back — log in” for returning devices; **Install app** button with step-by-step help for Android, iPhone, Samsung and computers.
+- **Calendar**: tap a date → “Schedule on this day”; edit or move events you created.
+- **Custom colour**: pick any accent colour; the palette is generated with readable button contrast.
+- **Owner console**: full teacher-application details (name, email, phone, school, level, experience, portfolio); **certificate settings** (auto-issue switch, public verification switch, issuer name) and **certificate designer** (Classic, Modern, Kente, Minimal; colours, wording, signatory, seal, signature and logo images); correct a learner’s name on a certificate.
+- **SEO**: `/robots.txt`, live `/sitemap.xml` (public pages + published public courses), per-page titles/descriptions/canonical, Open Graph and Twitter cards (1200×630 image, course covers for course pages — good WhatsApp previews), JSON-LD, `noindex` on private pages.
