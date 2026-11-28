@@ -148,10 +148,6 @@ export async function chat(req: Request, env: Env, user: User) {
       await send({ type: 'done' });
     } catch (e) {
       console.error('ai chat error:', e);
-      if (e instanceof OpenAI.APIError) {
-        const bodyText = await e.response?.text().catch(() => 'no body');
-        console.error('AI API Error Status:', e.status, 'Body:', bodyText);
-      }
       const status = e instanceof OpenAI.APIError ? e.status : 0;
       await send({ type: 'error', message: status === 429 || status === 529 ? 'The AI Companion is very busy. Please try again in a minute.' : 'The AI Companion had a problem answering. Please try again.' });
     } finally {
@@ -177,11 +173,6 @@ const TASK_BRIEF: Record<string, (f: StudioIn) => string> = {
   worksheet: () => 'Write a printable learner worksheet: title, instructions, Section A (short objective questions), Section B (structured questions), Section C (an activity or real-life problem), then an answer key for the teacher at the end under its own heading.',
 };
 
-/**
- * The schema is described in prose for the model (Gemini's OpenAI-compat JSON
- * mode takes response_format:{type:'json_object'} without a full schema), and
- * the same shape is enforced by parse+validate below.
- */
 const STUDIO_JSON_SPEC = `Return a single JSON object (no markdown fences) with these keys:
 - "title": string
 - "markdown": string (the full document)
